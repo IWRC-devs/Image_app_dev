@@ -4,10 +4,10 @@ const port = 3000;
 const mysql = require('mysql2');
 
 const connection = mysql.createConnection({
-    host: '192.168.254.52',       
-    user: 'iwrc_app_user',
-    password: 'iwrc@tamu',
-    database: 'iwrcimaging'
+    host: process.env.MYSQLHOST,       
+    user: process.env.MYSQLUSER,
+    password: process.env.MYSQLPASSWORD,
+    database: process.env.MYSQL_DATABASE
   });
 
 app.use(express.json());
@@ -18,7 +18,7 @@ res.send('Hello from Express!');
 
 
 app.listen(port, '0.0.0.0', () => {
- console.log(`Server is running on http://0.0.0.0:${port}`);
+  console.log(`Server is running on port ${port}`);
 });
 
 app.get('/api/affiliations', (req, res) => {
