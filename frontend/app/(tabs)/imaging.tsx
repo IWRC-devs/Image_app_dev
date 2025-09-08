@@ -21,8 +21,19 @@ export default function TabTwoScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  async function fetchJSON(endpoint: string) {
+    try {
+      const res = await fetch(`${API_BASE_URL}${endpoint}`);
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.error(`Error fetching ${endpoint}:`, err);
+      throw err;
+    }
+  }
+
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/affiliations`)
+    fetchJSON('/api/affiliations')
       .then((response) => response.json())
       .then((data) => {
         setAffiliations(data);
@@ -86,9 +97,9 @@ export default function TabTwoScreen() {
           {selectedAffiliation !== null && (
             <View style={styles.buttonContainer}>
               <Button mode="outlined"
-            onPress={onContinue} 
-            style={styles.button}>
-              Continue
+                onPress={onContinue}
+                style={styles.button}>
+                Continue
               </Button>
             </View>
           )}

@@ -2,14 +2,15 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 const mysql = require('mysql2');
+const cors = require('cors');
 
-const connection = mysql.createConnection({
+/*const connection = mysql.createConnection({
   host: process.env.MYSQLHOST,
   user: process.env.MYSQLUSER,
   password: process.env.MYSQLPASSWORD,
   database: process.env.MYSQL_DATABASE,
   port: process.env.MYSQLPORT
-});
+});*/
 
 connection.connect((err) => {
   if (err) {
@@ -19,17 +20,32 @@ connection.connect((err) => {
   console.log('Connected to MySQL database.');
 });
 
+app.use(cors());
 app.use(express.json());
+
+// Create a connection pool for Railway MySQL
+const pool = mysql.createPool({
+  host: process.env.MYSQLHOST,
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  port: process.env.MYSQLPORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
 app.get('/', (req, res) => {
   res.send('Hello from IWRC Imaging Backend!');
 });
 
+// Affiliations route
 app.get('/api/affiliations', (req, res) => {
   const sql = 'SELECT id, name FROM affiliations';
-  connection.query(sql, (err, results) => {
+  pool.query(sql, (err, results) => {
     if (err) {
-      return res.status(500).send('Database error ' + err.message);
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
     }
     res.json(results);
   });
