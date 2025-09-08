@@ -22,7 +22,7 @@ connection.connect((err) => {
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.send('Hello from Express!');
+  res.send('Hello from IWRC Imaging Backend!');
 });
 
 app.get('/api/affiliations', (req, res) => {
