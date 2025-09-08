@@ -27,17 +27,6 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-// Optional: test the pool on startup
-(async () => {
-  try {
-    const connection = await pool.getConnection();
-    console.log('Connected to MySQL database via pool.');
-    connection.release();
-  } catch (err) {
-    console.error('Database connection failed:', err);
-  }
-})();
-
 // Root endpoint
 app.get('/', (req, res) => {
   res.send('Hello from IWRC Imaging Backend!');
