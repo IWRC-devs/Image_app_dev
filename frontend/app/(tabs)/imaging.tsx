@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import { Button } from "react-native-paper";
+import { API_BASE_URL } from '@/constants/Config';
 
 export default function TabTwoScreen() {
 
@@ -21,7 +22,7 @@ export default function TabTwoScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch('http://47.160.221.19:3000/api/affiliations')
+    fetch(`${API_BASE_URL}/api/affiliations`)
       .then((response) => response.json())
       .then((data) => {
         setAffiliations(data);
