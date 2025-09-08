@@ -12,14 +12,6 @@ const cors = require('cors');
   port: process.env.MYSQLPORT
 });*/
 
-connection.connect((err) => {
-  if (err) {
-    console.error('Database connection failed:', err);
-    return;
-  }
-  console.log('Connected to MySQL database.');
-});
-
 app.use(cors());
 app.use(express.json());
 
@@ -35,6 +27,18 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
+// Optional: test the pool on startup
+(async () => {
+  try {
+    const connection = await pool.getConnection();
+    console.log('Connected to MySQL database via pool.');
+    connection.release();
+  } catch (err) {
+    console.error('Database connection failed:', err);
+  }
+})();
+
+// Root endpoint
 app.get('/', (req, res) => {
   res.send('Hello from IWRC Imaging Backend!');
 });
@@ -51,6 +55,7 @@ app.get('/api/affiliations', (req, res) => {
   });
 });
 
+// Start the server
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
 });
