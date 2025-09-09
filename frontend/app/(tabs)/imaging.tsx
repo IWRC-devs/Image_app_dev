@@ -34,7 +34,6 @@ export default function TabTwoScreen() {
 
   useEffect(() => {
     fetchJSON('/api/affiliations')
-      .then((response) => response.json())
       .then((data) => {
         setAffiliations(data);
         setLoading(false);
