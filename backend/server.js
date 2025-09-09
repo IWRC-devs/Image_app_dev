@@ -17,9 +17,9 @@ app.use(express.json());
 
 // Create a connection pool for Railway MySQL
 const pool = mysql.createPool({
-  host: process.env.MYSQLHOST,
+  host: process.env.MYSQL_HOST,
   user: process.env.MYSQLUSER,
-  password: process.env.MYSQLPASSWORD,
+  password: process.env.MYSQL_ROOT_PASSWORD,
   database: process.env.MYSQL_DATABASE,
   port: process.env.MYSQLPORT || 3306,
   waitForConnections: true,
@@ -42,6 +42,10 @@ app.get('/api/affiliations', (req, res) => {
     }
     res.json(results);
   });
+});
+
+app.get('/env', (req, res) => {
+  res.send('All env variables: ' + JSON.stringify(process.env, null, 2));
 });
 
 // Start the server
