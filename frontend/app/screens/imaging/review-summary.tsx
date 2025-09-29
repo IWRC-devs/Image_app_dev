@@ -50,12 +50,14 @@ export default function ReviewSummaryScreen() {
       formData.append("crop_answer", batchData.cropAnswer ?? "");
       formData.append("ground_cover_percent_id", String(batchData.groundCoverPercentId ?? ""));
 
+      console.log("FormData prepared, sending to backend...");
+
       // Append images
       selectedImages.forEach((img, idx) => {
         formData.append("images", {
           uri: img.uri,
-          type: "image/jpeg",
           name: `image-${idx}.jpg`,
+          type: "image/jpeg",
         } as any); // 'as any' to satisfy TS for React Native FormData
       });
 
@@ -68,7 +70,11 @@ export default function ReviewSummaryScreen() {
         },
       });
 
+      console.log("Fetch complete, status: ", response.status);
+
       const result = await response.json();
+
+      console.log("Response data: ", result);
       setLoading(false);
 
       if (response.ok) {

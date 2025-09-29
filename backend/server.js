@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise');
 const cors = require('cors');
 const multer = require('multer'); // for handling multipart/form-data
 const cloudinary = require('cloudinary').v2;
@@ -48,27 +48,27 @@ app.get('/', (req, res) => {
 });
 
 // Affiliations route
-app.get('/api/affiliations', (req, res) => {
-  const sql = 'SELECT id, name FROM affiliations';
-  pool.query(sql, (err, results) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).json({ error: 'Database error', details: err.message });
-    }
+app.get('/api/affiliations', async (req, res) => {
+  try {
+    const sql = 'SELECT id, name FROM affiliations';
+    const [results] = await pool.query(sql); // await returns [rows, fields]
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ error: 'Database error', details: err.message });
+  }
 });
 
 // GroundCoverPercent route
-app.get('/api/ground-cover-percent', (req, res) => {
-  const sql = 'SELECT id, name FROM ground_cover_percent';
-  pool.query(sql, (err, results) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).json({ error: 'Database error', details: err.message });
-    }
+app.get('/api/ground-cover-percent', async (req, res) => {
+  try {
+    const sql = 'SELECT id, name FROM ground_cover_percent';
+    const [results] = await pool.query(sql); // await returns [rows, fields]
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ error: 'Database error', details: err.message });
+  }
 });
 
 // Configure multer for file uploads
@@ -95,7 +95,7 @@ app.post('/api/upload-batch', upload.array('images', 500), async (req, res) => {
     // Upload images to Cloudinary
     const uploadedUrls = [];
     for (const file of req.files) {
-      const result = await new Promise < any > ((resolve, reject) => {
+      const result = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
           { folder: `batches/${name}`, format: 'jpg' },
           (error, result) => {
@@ -106,6 +106,7 @@ app.post('/api/upload-batch', upload.array('images', 500), async (req, res) => {
       });
       uploadedUrls.push(result.secure_url);
     }
+
 
     // Insert into MySQL
     const query = `
@@ -126,12 +127,13 @@ app.post('/api/upload-batch', upload.array('images', 500), async (req, res) => {
     res.json({ success: true, batchId: result.insertId, uploadedUrls });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error: ' + err });
   }
 });
 
 
 app.get('/env', (req, res) => {
+  res.type('json');
   res.send('All env variables: ' + JSON.stringify(process.env, null, 2));
 });
 
