@@ -1,26 +1,25 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { View, StyleSheet, FlatList, TouchableOpacity, Image, Alert, useColorScheme } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Image, Alert, useColorScheme } from "react-native";
 import { Button } from "react-native-paper";
 import * as ImagePicker from 'expo-image-picker';
+import { ImageItem, useBatch } from "../../context/BatchContext";
+import uuid from 'react-native-uuid';
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ImageSelectionScreen() {
   const colorScheme = useColorScheme();
   const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
   const router = useRouter();
+  const { batchData, setBatchData } = useBatch();
+  if (!batchData) return <ThemedText>No batch data available</ThemedText>;
 
-  const params = useLocalSearchParams();
-  const batchDataJson = params.data as string;
-  const batchData = JSON.parse(batchDataJson);
-  const { affiliationId, sizeClass, flowerAnswer, cropAnswer, groundCoverPercent, cloudCover, groundResidue } = batchData;
+  // Local state mirrors context images
+  const [selectedImages, setSelectedImages] = useState<ImageItem[]>(batchData.images ?? []);
 
-  console.log("params-3", batchData);
-
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
-
-  // Picking images
+  // Pick images from device
   const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsMultipleSelection: true,
@@ -29,38 +28,34 @@ export default function ImageSelectionScreen() {
     });
 
     if (!result.canceled) {
-      const newUris = result.assets.map(asset => asset.uri);
-      setSelectedImages(prev => [...prev, ...newUris].slice(0, 500));
+      const newItems = result.assets.map(asset => ({ id: uuid.v4() as string, uri: asset.uri }));
+      const updatedImages = [...selectedImages, ...newItems].slice(0, 500);
+      setSelectedImages(updatedImages);
+      setBatchData({ ...batchData, images: updatedImages }); // update context
     }
   };
 
-  const removeImage = (uri: string) => {
-    setSelectedImages(prev => prev.filter(item => item !== uri));
+  // Remove an image
+  const removeImage = (id: string) => {
+    const updatedImages = selectedImages.filter(img => img.id !== id);
+    setSelectedImages(updatedImages);
+    setBatchData({ ...batchData, images: updatedImages });
   };
 
+  // Clear all images
+  const clearAll = () => {
+    setSelectedImages([]);
+    setBatchData({ ...batchData, images: [] });
+  };
+
+  // Continue to next screen
   const handleContinue = () => {
     if (selectedImages.length === 0) {
       Alert.alert("Please select at least one image.");
       return;
     }
-
-    const batchName = `batch-${new Date().toISOString()}`;
-    const batchData = {
-      name: batchName,
-      images: selectedImages.map(uri => ({ uri })),
-      affiliationId,
-      sizeClass,
-      flowerAnswer,
-      cropAnswer,
-      groundCoverPercent,
-      cloudCover,
-      groundResidue
-    };
-
-    router.push({
-      pathname: '../../screens/imaging/review-summary',
-      params: { data: JSON.stringify(batchData) },
-    });
+    // Navigate to next screen
+    router.push("../../screens/imaging/review-summary");
   };
 
   return (
@@ -72,28 +67,31 @@ export default function ImageSelectionScreen() {
       </ThemedView>
 
       <View style={styles.content}>
+        {/* Pick Images Button */}
         <Button mode="outlined" onPress={pickImages} style={styles.pickButton}>
           <ThemedText style={styles.pickButtonText}>Select Images from Device</ThemedText>
         </Button>
 
         <ThemedText style={styles.heading}>Selected Images ({selectedImages.length})</ThemedText>
 
+        {/* Selected Images Grid */}
         <View style={styles.grid}>
-          {selectedImages.map((uri, idx) => (
-            <View key={idx} style={styles.imageWrapper}>
-              <Image source={{ uri }} style={styles.thumbnail} />
+          {selectedImages.map((item) => (
+            <View key={item.id} style={styles.imageWrapper}>
+              <Image source={{ uri: item.uri }} style={styles.thumbnail} />
 
               {/* Remove button */}
               <TouchableOpacity
                 style={styles.removeButton}
-                onPress={() => removeImage(uri)}
+                onPress={() => removeImage(item.id)}
               >
-                <ThemedText style={styles.removeText}>✕</ThemedText>
+                <Ionicons name="close-circle" size={24} color="red" />
               </TouchableOpacity>
             </View>
           ))}
         </View>
 
+        {/* Continue and Clear buttons */}
         {selectedImages.length > 0 && (
           <View style={{ marginTop: 16, marginBottom: 12 }}>
             <TouchableOpacity
@@ -105,7 +103,12 @@ export default function ImageSelectionScreen() {
 
             <Button
               mode="outlined"
-              onPress={() => setSelectedImages([])}
+              onPress={() => {
+                setSelectedImages([]);
+                if (batchData) {
+                  setBatchData({ ...batchData, images: [] });
+                }
+              }}
               style={{
                 borderColor: 'red',
                 marginTop: 12,
@@ -150,7 +153,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5, // for Android shadow
+    elevation: 5,
     borderWidth: 2,
     borderColor: 'grey',
     borderStyle: 'dashed',
@@ -202,7 +205,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: -10,
-    backgroundColor: 'red',
+    backgroundColor: 'white',
     borderRadius: 60,
     width: 25,
     height: 25,

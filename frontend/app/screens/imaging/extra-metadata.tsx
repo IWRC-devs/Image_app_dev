@@ -1,43 +1,63 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
-import { SafeAreaView, ScrollView, useColorScheme, View, StyleSheet, TouchableOpacity } from "react-native";
-import { Button } from "react-native-paper";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ScrollView, useColorScheme, View, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import { useBatch } from "../../context/BatchContext";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { API_BASE_URL } from "@/constants/Config";
 
 export default function ExtraMetadataScreen() {
   const colorScheme = useColorScheme();
   const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
-  const [groundCoverPercent, setGroundCoverPercent] = useState('');
+  const { batchData, setBatchData } = useBatch();
+  const [groundCoverPercent, setGroundCoverPercent] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [selectedGroundCoverPercentId, setSelectedGroundCoverPercent] = useState<number | null>(
+    batchData?.groundCoverPercentId ?? null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const params = useLocalSearchParams();
-  const batchDataJson = params.data as string;
-  const batchData = JSON.parse(batchDataJson);
-  const affiliationId = batchData.affiliationId;
-  const sizeClass = batchData.sizeClass;
-  const flowerAnswer = batchData.flowerAnswer;
-  const cropAnswer = batchData.cropAnswer;
+  useEffect(() => {
+    async function fetchGroundCoverPercent() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/ground-cover-percent`);
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const data = await res.json();
+        setGroundCoverPercent(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchGroundCoverPercent();
+  }, []);
 
-
-  const options = ["0-25%", "26-50%", "51-75%", "76-100%"];
-
+  // Continue to next screen
   const onContinue = () => {
-    if (!groundCoverPercent) return;
-    const formData = {
-      affiliationId,
-      sizeClass,
-      flowerAnswer,
-      cropAnswer,
-      groundCoverPercent,
-    };
+    if (selectedGroundCoverPercentId === null || selectedGroundCoverPercentId === undefined) return;
 
-    router.push({
-      pathname: '../../screens/imaging/image-option',
-      params: { data: JSON.stringify(formData) },
-    });
+    if (batchData) {
+      setBatchData({
+        ...batchData!,
+        groundCoverPercentId: selectedGroundCoverPercentId,
+      });
+    }
+
+    router.push("../../screens/imaging/image-option");
   };
+
+  if (loading)
+    return (
+      <ActivityIndicator
+        size="large"
+        color="#ffffff"
+        style={{ flex: 1, justifyContent: "center" }}
+      />
+    );
 
   return (
     <View style={{ flex: 1 }}>
@@ -46,26 +66,26 @@ export default function ExtraMetadataScreen() {
           Step 3: Extra Metadata
         </ThemedText>
       </ThemedView>
-      <View style={{ flex: 1, padding: 16 }}>
+      <View style={{ flex: 1, padding: 16, position: 'relative' }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
           <ThemedText style={styles.label}>Ground Cover %</ThemedText>
           <View style={styles.listContainer}>
-            {options.map((opt) => (
+            {groundCoverPercent.map((opt) => (
               <TouchableOpacity
-                key={opt}
+                key={opt.id}
                 style={[
                   styles.item,
-                  groundCoverPercent === opt && styles.selectedItem,
+                  selectedGroundCoverPercentId === opt.id && styles.selectedItem,
                 ]}
-                onPress={() => setGroundCoverPercent(opt)}
+                onPress={() => setSelectedGroundCoverPercent(opt.id)}
               >
                 <ThemedText style={[
                   styles.itemText,
-                  groundCoverPercent === opt && styles.selectedText
+                  selectedGroundCoverPercentId === opt.id && styles.selectedText
                 ]}>
-                  {opt}
+                  {opt.name}
                 </ThemedText>
-                {groundCoverPercent === opt && (
+                {selectedGroundCoverPercentId === opt.id && (
                   <Ionicons
                     name="checkmark-circle"
                     size={30}
@@ -76,16 +96,19 @@ export default function ExtraMetadataScreen() {
               </TouchableOpacity>
             ))}
           </View>
-
-          {groundCoverPercent ? (
+        </ScrollView>
+        {groundCoverPercent && (
+          <SafeAreaView
+            edges={[]}
+            style={{ paddingHorizontal: 0, paddingTop: 20, paddingBottom: 12 }}>
             <TouchableOpacity
               style={styles.continueButton}
               onPress={() => onContinue()}
             >
               <ThemedText style={styles.continueButtonText}>Continue</ThemedText>
             </TouchableOpacity>
-          ) : null}
-        </ScrollView>
+          </SafeAreaView>
+        )}
       </View>
     </View>
   );
@@ -126,7 +149,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between", // pushes icon to the right
   },
   selectedItem: {
-    backgroundColor: "#607D8B", // selected color (green)
+    backgroundColor: "#607D8B",
   },
   itemText: {
     fontSize: 18,
@@ -140,12 +163,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   continueButton: {
-    marginTop: 24,
-    marginBottom: 100,
-    backgroundColor: "#4CAF50",
-    paddingVertical: 20,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 14,
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   continueButtonText: {
     color: "#fff",

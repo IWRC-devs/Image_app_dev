@@ -8,16 +8,19 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+import { BatchProvider } from '@/app/context/BatchContext';
 
 export default function ImagingLayout() {
   const colorScheme = useColorScheme();
 
   return (
-
+    <BatchProvider>
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: '#4CAF50',
         headerTitle: 'IWRC Imaging',
+        headerTitleAlign: 'center',
         headerShown: true,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -34,32 +37,31 @@ export default function ImagingLayout() {
         name="index"
         options={{
           title: 'Affiliation',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="home" color={color} />,
         }} />
       <Tabs.Screen
         name="parameters"
         options={{
           title: 'Parameters',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="slider.horizontal.3" color={color} />
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="options-outline" color={color} />
         }} />
       <Tabs.Screen
         name="extra-metadata"
         options={{
           title: 'Metadata',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="doc.text.magnifyingglass" color={color} />
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="document-text-outline" color={color} />
         }} />
       <Tabs.Screen
         name="image-option"
         options={{
           title: 'Image Selection',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="photo.on.rectangle" color={color} />
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="image-outline" color={color} />
         }} />
       <Tabs.Screen
         name="image-selection"
         options={{
           title: 'Upload',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="square.and.arrow.up" color={color}
-          />,
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="cloud-upload-outline" color={color} />,
           href: null, // This hides the tab from the tab bar
           /*tabBarStyle: {
             display: 'none', // Hide the tab bar for this specific screen
@@ -69,7 +71,7 @@ export default function ImagingLayout() {
         name="capture-image"
         options={{
           title: 'Capture',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="camera.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="camera" color={color} />,
           href: null, // This hides the tab from the tab bar
           /*tabBarStyle: {
             display: 'none', // Hide the tab bar for this specific screen
@@ -79,7 +81,7 @@ export default function ImagingLayout() {
         name="review-summary"
         options={{
           title: 'Review & Upload',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="camera.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="camera" color={color} />,
           href: null, // This hides the tab from the tab bar
           /*tabBarStyle: {
             display: 'none', // Hide the tab bar for this specific screen
@@ -87,5 +89,6 @@ export default function ImagingLayout() {
         }} /> 
 
     </Tabs>
+    </BatchProvider>
   );
 }

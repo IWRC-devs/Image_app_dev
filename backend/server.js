@@ -44,6 +44,18 @@ app.get('/api/affiliations', (req, res) => {
   });
 });
 
+// GroundCoverPercent route
+app.get('/api/ground-cover-percent', (req, res) => {
+  const sql = 'SELECT id, name FROM ground_cover_percent';
+  pool.query(sql, (err, results) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    res.json(results);
+  });
+});
+
 app.get('/env', (req, res) => {
   res.send('All env variables: ' + JSON.stringify(process.env, null, 2));
 });

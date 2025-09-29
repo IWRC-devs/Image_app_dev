@@ -6,67 +6,53 @@ import { SafeAreaView, ScrollView, useColorScheme, View, StyleSheet, TouchableOp
 import { Button } from "react-native-paper";
 import uuid from 'react-native-uuid';
 import * as ImagePicker from 'expo-image-picker';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { ImageItem, useBatch } from "../../context/BatchContext";
 
 export default function CaptureImageScreen() {
   const colorScheme = useColorScheme();
   const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
-  const [capturedImages, setCapturedImages] = useState<string[]>([]);
+  const { batchData, setBatchData } = useBatch();
+  const [capturedImages, setCapturedImages] = useState<ImageItem[]>(batchData?.images ?? []);
   const router = useRouter();
+  if (!batchData) return <ThemedText>No batch data available</ThemedText>;
 
-  const params = useLocalSearchParams();
-  const affiliationId = params.affiliationId;
-  const sizeClass = params.sizeClass;
-  const flowerAnswer = params.flowerAnswer;
-  const cropAnswer = params.cropAnswer;
-  const groundCoverPercent = params.groundCoverPercent;
-  const cloudCover = params.cloudCover;
-  const groundResidue = params.groundResidue;
-
+  // Capture from camera
   const handleCapture = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) return;
 
     const result = await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.7 });
     if (!result.canceled && result.assets.length > 0) {
-      setCapturedImages(prev => [...prev, result.assets[0].uri]);
+      const newImage: ImageItem = { id: uuid.v4() as string, uri: result.assets[0].uri };
+      const updatedImages = [...capturedImages, newImage].slice(0, 500);
+      setCapturedImages(updatedImages);
+      setBatchData({ ...batchData, images: updatedImages }); // Update context
     }
   };
 
-  const removeImage = (uri: string) => {
-    setCapturedImages(prev => prev.filter(img => img !== uri));
+  // Remove image
+  const removeImage = (id: string) => {
+    const updatedImages = capturedImages.filter(img => img.id !== id);
+    setCapturedImages(updatedImages);
+    setBatchData({ ...batchData, images: updatedImages }); // Update context
   };
 
-  const clearAll = () => setCapturedImages([]);
+  // Clear all
+  const clearAll = () => {
+    setCapturedImages([]);
+    setBatchData({ ...batchData, images: [] });
+  };
 
+  // Continue to next screen
   const handleContinue = () => {
     if (capturedImages.length === 0) {
       Alert.alert("Please capture at least one image.");
       return;
     }
 
-    const timestamp = new Date().toISOString();
-    const batch = {
-      name: `batch-${timestamp}`,
-      images: capturedImages.map(uri => ({ id: uuid.v4(), uri })),
-    };
-
-    const batchData = {
-      name: batch.name,
-      images: batch.images,
-      affiliationId,
-      sizeClass,
-      flowerAnswer,
-      cropAnswer,
-      groundCoverPercent,
-      cloudCover,
-      groundResidue
-    };
-
-    router.push({
-      pathname: '../../screens/imaging/review-summary', 
-      params: { data: JSON.stringify(batchData) },
-    });
+    // Navigate to next screen
+    router.push("../../screens/imaging/review-summary");
   };
 
   return (
@@ -89,13 +75,11 @@ export default function CaptureImageScreen() {
             <ThemedText style={styles.heading}>Captured Images ({capturedImages.length})</ThemedText>
 
             <View style={styles.grid}>
-              {capturedImages.map((uri, idx) => (
-                <View key={idx} style={styles.imageWrapper}>
-                  <Image source={{ uri }} style={styles.thumbnail} />
-
-                  {/* Remove button */}
-                  <TouchableOpacity style={styles.removeButton} onPress={() => removeImage(uri)}>
-                    <ThemedText style={styles.removeText}>✕</ThemedText>
+              {capturedImages.map((item) => (
+                <View key={item.id} style={styles.imageWrapper}>
+                  <Image source={{ uri: item.uri }} style={styles.thumbnail} />
+                  <TouchableOpacity style={styles.removeButton} onPress={() => removeImage(item.id)}>
+                  <Ionicons name="close-circle" size={24} color="red" />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -172,7 +156,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -6,
     right: -6,
-    backgroundColor: 'red',
+    backgroundColor: 'white',
     borderRadius: 12,
     width: 24,
     height: 24,

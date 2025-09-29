@@ -1,46 +1,49 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useState } from "react";
-import { SafeAreaView, ScrollView, useColorScheme, View, StyleSheet, TouchableOpacity } from "react-native";
-import { Button } from "react-native-paper";
+import { ScrollView, useColorScheme, View, StyleSheet, TouchableOpacity } from "react-native";
+import { useBatch } from "../../context/BatchContext";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ImageOptionScreen() {
   const colorScheme = useColorScheme();
   const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
-  const [selectedOption, setSelectedOption] = useState<'manual' | 'camera' | null>(null);
   const router = useRouter();
+  const { batchData, setBatchData } = useBatch();
 
-  const params = useLocalSearchParams();
-  const batchDataJson = params.data as string;
-  const batchData = JSON.parse(batchDataJson);
-  const { affiliationId, sizeClass, flowerAnswer, cropAnswer, groundCoverPercent, cloudCover, groundResidue } = batchData;
+  if (!batchData) return <ThemedText>No batch data available</ThemedText>;
 
-  console.log("params-2", batchData);
+  // Restrict state to match BatchData.selectedOption type
+  const [selectedOption, setSelectedOption] = useState<"manual" | "capture" | null>(
+    batchData.selectedOption ?? null
+  );
 
-  const options: { key: 'manual' | 'camera'; label: string }[] = [
+  // Options for user to select
+  const options: { key: 'manual' | 'capture'; label: string }[] = [
     { key: 'manual', label: 'Select images manually' },
-    { key: 'camera', label: 'Take images using device camera' },
+    { key: 'capture', label: 'Take images using device camera' },
   ];
 
+  // Continue to next screen
   const handleContinue = () => {
     if (!selectedOption) return;
 
-    const formData = {
-      affiliationId,
-      sizeClass,
-      flowerAnswer,
-      cropAnswer,
-      groundCoverPercent,
-      cloudCover,
-      groundResidue
-    };
-
-    router.push({
-      pathname: selectedOption === 'manual' ? '../../screens/imaging/image-selection' : '../../screens/imaging/capture-image',
-      params: { data: JSON.stringify({ ...formData, selectedOption }) },
+    // Update batchData in context
+    setBatchData({
+      ...batchData,
+      selectedOption,
+      // batchData already contains affiliationId, sizeClass, flowerAnswer, cropAnswer, groundCoverPercent, etc.
     });
+
+    // Navigate to the next screen
+    const nextScreen =
+      selectedOption === "manual"
+        ? "../../screens/imaging/image-selection"
+        : "../../screens/imaging/capture-image";
+
+    router.push(nextScreen);
   };
 
   return (
@@ -83,16 +86,19 @@ export default function ImageOptionScreen() {
               </TouchableOpacity>
             ))}
           </View>
-
-          {selectedOption && (
+        </ScrollView>
+        {selectedOption && (
+            <SafeAreaView
+                        edges={[]}
+                        style={{ paddingHorizontal: 0, paddingTop: 20, paddingBottom: 12 }}>
             <TouchableOpacity
               style={styles.continueButton}
               onPress={() => handleContinue()}
             >
               <ThemedText style={styles.continueButtonText}>Continue</ThemedText>
             </TouchableOpacity>
+            </SafeAreaView>
           )}
-        </ScrollView>
       </View>
     </View>
   );
@@ -123,12 +129,11 @@ const styles = StyleSheet.create({
   optionText: { fontSize: 16, color: '#000' },
   optionTextSelected: { color: '#fff', fontWeight: 'bold' },
   continueButton: {
-    marginTop: 20,
-    marginBottom: 100,
-    backgroundColor: "#4CAF50",
-    paddingVertical: 20,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 14,
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   continueButtonText: {
     color: "#fff",

@@ -8,12 +8,12 @@ import {
   useColorScheme,
   TouchableOpacity,
 } from "react-native";
-import { Button } from "react-native-paper";
 import { ThemedText } from "@/components/ThemedText";
 import { API_BASE_URL } from "@/constants/Config";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedView } from "@/components/ThemedView";
 import { Ionicons } from "@expo/vector-icons";
+import { useBatch } from "../../context/BatchContext";
 
 export default function AffiliationList() {
   const router = useRouter();
@@ -44,12 +44,41 @@ export default function AffiliationList() {
     fetchAffiliations();
   }, []);
 
-  const handleContinue = () => {
-    if (selectedAffiliation) {
-      router.push({
-        pathname: "../../screens/imaging/parameters",
-        params: { affiliationId: selectedAffiliation.id },
+  const { batchData, setBatchData } = useBatch();
+  const timestamp = new Date().toISOString();
+
+  // Generate initial batch data only if it doesn't exist yet
+  useEffect(() => {
+    if (!batchData) {
+      const timestamp = new Date().toISOString();
+      setBatchData({
+        name: `batch-${timestamp}`,  // batch name generated once
+        images: [],
+        affiliationId: selectedAffiliation?.id ?? undefined,
+        sizeClass: null,
+        flowerAnswer: null,
+        cropAnswer: null,
+        groundCoverPercentId: undefined,
+        //cloudCover: undefined,
+        //groundResidue: undefined,
+        selectedOption: undefined,
       });
+    }
+  }, []);
+
+  // Continue to next screen
+  const handleContinue = () => {
+    if (selectedAffiliation && batchData) {
+      // update batchData with selected affiliation
+      if (batchData) {
+        setBatchData({
+          ...batchData,
+          affiliationId: selectedAffiliation.id, // update only this field
+        });
+      }
+
+      // navigate to next screen
+      router.push("../../screens/imaging/parameters"); // no params needed
     }
   };
 
@@ -71,7 +100,8 @@ export default function AffiliationList() {
       </ThemedView>
       <View style={{ flex: 1, padding: 16 }}>
 
-        <ScrollView contentContainerStyle={{ paddingBottom: 60 }}
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 60, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}>
 
           {affiliations.map((aff) => (
@@ -106,12 +136,16 @@ export default function AffiliationList() {
 
         </ScrollView>
         {selectedAffiliation && (
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={() => handleContinue()}
-          >
-            <ThemedText style={styles.continueButtonText}>Continue</ThemedText>
-          </TouchableOpacity>
+          <SafeAreaView
+            edges={[]}
+            style={{ paddingHorizontal: 0, paddingTop: 20, paddingBottom: 12 }}>
+            <TouchableOpacity
+              style={styles.continueButton}
+              onPress={() => handleContinue()}
+            >
+              <ThemedText style={styles.continueButtonText}>Continue</ThemedText>
+            </TouchableOpacity>
+          </SafeAreaView>
         )}
       </View>
     </View>
@@ -149,12 +183,11 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   continueButton: {
-    marginTop: 24,
-    marginBottom: 100,
-    backgroundColor: "#4CAF50",
-    paddingVertical: 20,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 14,
     borderRadius: 8,
-    alignItems: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   continueButtonText: {
     color: "#fff",

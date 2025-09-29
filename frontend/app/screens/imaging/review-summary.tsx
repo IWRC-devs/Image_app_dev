@@ -1,41 +1,32 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View, ScrollView, Image, TouchableOpacity, StyleSheet, Alert, useColorScheme } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { Button } from 'react-native-paper';
 import { ThemedView } from '@/components/ThemedView';
-
-type ImageItem = { uri: string };
-
-type BatchData = {
-  name: string;
-  images: ImageItem[];
-  affiliationId: string;
-  sizeClass: string;
-  flowerAnswer: string;
-  cropAnswer: string;
-  groundCoverPercent: string;
-  cloudCover: string;
-  groundResidue: string;
-};
+import { ImageItem, useBatch } from '../../context/BatchContext';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ReviewSummaryScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const { batchData, setBatchData } = useBatch();
+  if (!batchData) return <ThemedText>No batch data available</ThemedText>;
+
   const colorScheme = useColorScheme();
-  // Parse the batch data safely
-  const batchDataJson = params.data as string;
-  const batchData: BatchData = JSON.parse(batchDataJson);
   const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
 
 
-  const [selectedImages, setSelectedImages] = useState<ImageItem[]>(batchData.images);
+  // Local state mirrors context images
+  const selectedImages = batchData.images;
 
-
-  const removeImage = (uri: string) => {
-    setSelectedImages(prev => prev.filter(item => item.uri !== uri));
+  // Remove an image
+  const removeImage = (id: string) => {
+    if (!batchData) return;
+    const updatedImages = selectedImages.filter(img => img.id !== id);
+    setBatchData({ ...batchData, images: updatedImages });
   };
 
+  // Save and Upload
   const handleUpload = () => {
     if (selectedImages.length === 0) {
       Alert.alert("Please select at least one image to upload.");
@@ -43,7 +34,6 @@ export default function ReviewSummaryScreen() {
     }
 
     // TODO: implement upload logic here
-    //Alert.alert("Upload", `Uploading ${selectedImages.length} images...`);
     Alert.alert("Upload", `Uploading is disabled`);
   };
 
@@ -59,29 +49,42 @@ export default function ReviewSummaryScreen() {
         <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
 
           {/* Summary Section */}
+          <ThemedText style={styles.summaryTitle}>Batch Summary</ThemedText>
           <View style={styles.summaryBox}>
-            <ThemedText style={styles.summaryTitle}>Batch Summary</ThemedText>
-            <ThemedText>Batch Name: {batchData.name}</ThemedText>
-            <ThemedText>Affiliation ID: {batchData.affiliationId}</ThemedText>
-            <ThemedText>Size Class: {batchData.sizeClass}</ThemedText>
-            <ThemedText>Flower Answer: {batchData.flowerAnswer}</ThemedText>
-            <ThemedText>Crop Answer: {batchData.cropAnswer}</ThemedText>
-            <ThemedText>Ground Cover %: {batchData.groundCoverPercent}</ThemedText>
+            
+
+            {[
+              { label: "Batch Name", value: batchData.name },
+              { label: "Affiliation ID", value: batchData.affiliationId },
+              { label: "Size Class", value: batchData.sizeClass },
+              { label: "Flower Answer", value: batchData.flowerAnswer },
+              { label: "Crop Answer", value: batchData.cropAnswer },
+              { label: "Ground Cover %", value: batchData.groundCoverPercentId },
+            ].map((item, idx) => (
+              <View key={idx} style={styles.summaryRow}>
+                <ThemedText style={styles.summaryLabel}>{item.label}:</ThemedText>
+                <View style={{ flex: 1 }}>
+                  <ThemedText
+                    style={styles.summaryValue}
+                    numberOfLines={0} // allow multiple lines
+                  >
+                    {item.value}
+                  </ThemedText>
+                </View>
+              </View>
+            ))}
           </View>
 
-          {/* Thumbnails Section */}
+          {/* Selected Images Section */}
           <ThemedText style={styles.heading}>Selected Images ({selectedImages.length})</ThemedText>
           <View style={styles.grid}>
-            {selectedImages.map((item: ImageItem, idx: number) => (
-              <View key={idx} style={styles.imageWrapper}>
+            {selectedImages.map(item => (
+              <View key={item.id} style={styles.imageWrapper}>
                 <Image source={{ uri: item.uri }} style={styles.thumbnail} />
 
                 {/* Remove button */}
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => removeImage(item.uri)}
-                >
-                  <ThemedText style={styles.removeText}>✕</ThemedText>
+                <TouchableOpacity style={styles.removeButton} onPress={() => removeImage(item.id)}>
+                <Ionicons name="close-circle" size={24} color="red" />
                 </TouchableOpacity>
               </View>
             ))}
@@ -125,11 +128,27 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)', // optional light background
+  },
+  summaryRow: {
+    flexDirection: "row",
+    alignItems: "flex-start", // aligns label and wrapped text to the top
+    marginBottom: 8,
   },
   summaryTitle: {
     fontWeight: "bold",
     fontSize: 18,
     marginBottom: 8,
+  },
+  summaryLabel: {
+    fontWeight: "600",
+    marginRight: 6,
+    flexShrink: 0,
+  },
+  summaryValue: {
+    flex: 1,
+    flexWrap: "wrap", // enables wrapping
+    color: "green"
   },
   heading: {
     fontSize: 16,
@@ -149,7 +168,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -10,
     right: -10,
-    backgroundColor: 'red',
+    backgroundColor: 'white',
     borderRadius: 60,
     width: 25,
     height: 25,
