@@ -1,11 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { View, ScrollView, Image, TouchableOpacity, StyleSheet, Alert, useColorScheme } from 'react-native';
+import { View, ScrollView, Image, TouchableOpacity, StyleSheet, Alert, useColorScheme, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
-import { Button } from 'react-native-paper';
 import { ThemedView } from '@/components/ThemedView';
-import { ImageItem, useBatch } from '../../context/BatchContext';
+import { useBatch } from '../../context/BatchContext';
 import { Ionicons } from '@expo/vector-icons';
+import { API_BASE_URL } from "@/constants/Config";
 
 export default function ReviewSummaryScreen() {
   const router = useRouter();
@@ -14,6 +14,7 @@ export default function ReviewSummaryScreen() {
 
   const colorScheme = useColorScheme();
   const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
+  const [loading, setLoading] = useState(true);
 
 
   // Local state mirrors context images
@@ -27,15 +28,75 @@ export default function ReviewSummaryScreen() {
   };
 
   // Save and Upload
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (selectedImages.length === 0) {
       Alert.alert("Please select at least one image to upload.");
       return;
     }
 
-    // TODO: implement upload logic here
-    Alert.alert("Upload", `Uploading is disabled`);
+    if (!batchData) {
+      Alert.alert("Batch data not available.");
+      return;
+    }
+    try {
+      setLoading(true);
+      const formData = new FormData();
+
+      // Append batch info
+      formData.append("name", batchData.name);
+      formData.append("affiliation_id", String(batchData.affiliationId ?? ""));
+      formData.append("size_class", batchData.sizeClass ?? "");
+      formData.append("flower_answer", batchData.flowerAnswer ?? "");
+      formData.append("crop_answer", batchData.cropAnswer ?? "");
+      formData.append("ground_cover_percent_id", String(batchData.groundCoverPercentId ?? ""));
+
+      // Append images
+      selectedImages.forEach((img, idx) => {
+        formData.append("images", {
+          uri: img.uri,
+          type: "image/jpeg",
+          name: `image-${idx}.jpg`,
+        } as any); // 'as any' to satisfy TS for React Native FormData
+      });
+
+      // Call backend API
+      const response = await fetch(`${API_BASE_URL}/api/upload-batch`, {
+        method: "POST",
+        body: formData,
+        headers: {
+          "Accept": "application/json",
+        },
+      });
+
+      const result = await response.json();
+      setLoading(false);
+
+      if (response.ok) {
+        Alert.alert("Success", `Batch uploaded with ID: ${result.batchId}`);
+        // Optionally reset state or navigate
+      } else {
+        console.error(result);
+        Alert.alert("Upload failed", result.error || "Unknown error");
+      }
+    } catch (err) {
+      setLoading(false);
+      console.error(err);
+      Alert.alert("Upload failed", "Server error");
+    }
+
+
+
+
   };
+
+  if (loading)
+    return (
+      <ActivityIndicator
+        size="large"
+        color="#ffffff"
+        style={{ flex: 1, justifyContent: "center" }}
+      />
+    );
 
   return (
     <View style={{ flex: 1 }}>
@@ -51,15 +112,15 @@ export default function ReviewSummaryScreen() {
           {/* Summary Section */}
           <ThemedText style={styles.summaryTitle}>Batch Summary</ThemedText>
           <View style={styles.summaryBox}>
-            
+
 
             {[
               { label: "Batch Name", value: batchData.name },
               { label: "Affiliation ID", value: batchData.affiliationId },
+              { label: "Ground Cover Percent ID", value: batchData.groundCoverPercentId },
               { label: "Size Class", value: batchData.sizeClass },
-              { label: "Flower Answer", value: batchData.flowerAnswer },
-              { label: "Crop Answer", value: batchData.cropAnswer },
-              { label: "Ground Cover %", value: batchData.groundCoverPercentId },
+              { label: "Flower, fruit or Seeds", value: batchData.flowerAnswer },
+              { label: "Crop or Fallow field", value: batchData.cropAnswer },
             ].map((item, idx) => (
               <View key={idx} style={styles.summaryRow}>
                 <ThemedText style={styles.summaryLabel}>{item.label}:</ThemedText>
@@ -84,7 +145,7 @@ export default function ReviewSummaryScreen() {
 
                 {/* Remove button */}
                 <TouchableOpacity style={styles.removeButton} onPress={() => removeImage(item.id)}>
-                <Ionicons name="close-circle" size={24} color="red" />
+                  <Ionicons name="close-circle" size={24} color="red" />
                 </TouchableOpacity>
               </View>
             ))}
