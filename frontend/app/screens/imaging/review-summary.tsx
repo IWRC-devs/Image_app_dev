@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { View, ScrollView, Image, TouchableOpacity, StyleSheet, Alert, useColorScheme, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { useBatch } from '../../context/BatchContext';
+import { createNewBatch, useBatch } from '../../context/BatchContext';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from "@/constants/Config";
 
@@ -75,19 +75,20 @@ export default function ReviewSummaryScreen() {
       const result = await response.json();
 
       console.log("Response data: ", result);
-      setLoading(false);
 
-      if (response.ok) {
+      if (result.success) {
         Alert.alert("Success", `Batch uploaded with ID: ${result.batchId}`);
-        // Optionally reset state or navigate
+        //reset to fresh batch
+        setBatchData(createNewBatch());
       } else {
         console.error(result);
         Alert.alert("Upload failed", result.error || "Unknown error");
       }
     } catch (err) {
-      setLoading(false);
       console.error(err);
       Alert.alert("Upload failed", "Server error");
+    } finally {
+      setLoading(false);
     }
 
 

@@ -108,26 +108,36 @@ app.post('/api/upload-batch', upload.array('images', 500), async (req, res) => {
     }
 
 
-    // Insert into MySQL
+    // Insert batch metadata
     const query = `
       INSERT INTO batches
-      (name, affiliation_id, size_class, flower_answer, crop_answer, ground_cover_percent_id, images)
+      (name, affiliation_id, size_class, flower_answer, crop_answer, ground_cover_percent_id)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    const [result] = await pool.execute(query, [
+    const [batchResult] = await pool.execute(query, [
       name,
       affiliation_id || null,
       size_class || null,
       flower_answer || null,
       crop_answer || null,
-      ground_cover_percent_id || null,
-      JSON.stringify(uploadedUrls),
+      ground_cover_percent_id || null
     ]);
 
-    res.json({ success: true, batchId: result.insertId, uploadedUrls });
+    const batchId = batchResult.insertId;
+
+    // Insert images into batch_images
+    if (uploadedUrls.length > 0) {
+      const values = uploadedUrls.map(url => [batchId, url]);
+      await pool.query(
+        'INSERT INTO batch_images (batch_id, url) VALUES ?',
+        [values]
+      );
+    }
+
+    res.json({ success: true, batchId, uploadedUrls });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error: ' + err });
+    res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 

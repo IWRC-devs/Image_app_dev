@@ -20,7 +20,7 @@ export type BatchData = {
 
 type BatchContextType = {
   batchData: BatchData | null;
-  setBatchData: (data: BatchData) => void;
+  setBatchData: (data: BatchData | null) => void;
 };
 
 const BatchContext = createContext<BatchContextType | undefined>(undefined);
@@ -39,4 +39,18 @@ export const BatchProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </BatchContext.Provider>
   );
+};
+
+export const createNewBatch = (): BatchData => {
+  const timestamp = new Date().toISOString();
+  return {
+    name: `batch-${timestamp}`,
+    images: [],
+    affiliationId: undefined,
+    sizeClass: null,
+    flowerAnswer: null,
+    cropAnswer: null,
+    groundCoverPercentId: undefined,
+    selectedOption: undefined,
+  };
 };
