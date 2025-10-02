@@ -13,7 +13,8 @@ export default function CaptureImageScreen() {
   const colorScheme = useColorScheme();
   const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
   const { batchData, setBatchData } = useBatch();
-  const [capturedImages, setCapturedImages] = useState<ImageItem[]>(batchData?.images ?? []);
+  //const [capturedImages, setCapturedImages] = useState<ImageItem[]>(batchData?.images ?? []); //Remove local state and use context directly
+  const capturedImages = batchData?.images ?? [];
   const router = useRouter();
   if (!batchData) return <ThemedText>No batch data available</ThemedText>;
 
@@ -26,7 +27,7 @@ export default function CaptureImageScreen() {
     if (!result.canceled && result.assets.length > 0) {
       const newImage: ImageItem = { id: uuid.v4() as string, uri: result.assets[0].uri };
       const updatedImages = [...capturedImages, newImage].slice(0, 500);
-      setCapturedImages(updatedImages);
+      //setCapturedImages(updatedImages);
       setBatchData({ ...batchData, images: updatedImages }); // Update context
     }
   };
@@ -34,13 +35,13 @@ export default function CaptureImageScreen() {
   // Remove image
   const removeImage = (id: string) => {
     const updatedImages = capturedImages.filter(img => img.id !== id);
-    setCapturedImages(updatedImages);
+    //setCapturedImages(updatedImages);
     setBatchData({ ...batchData, images: updatedImages }); // Update context
   };
 
   // Clear all
   const clearAll = () => {
-    setCapturedImages([]);
+    //setCapturedImages([]);
     setBatchData({ ...batchData, images: [] });
   };
 

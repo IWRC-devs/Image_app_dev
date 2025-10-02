@@ -17,7 +17,8 @@ export default function ImageSelectionScreen() {
   if (!batchData) return <ThemedText>No batch data available</ThemedText>;
 
   // Local state mirrors context images
-  const [selectedImages, setSelectedImages] = useState<ImageItem[]>(batchData.images ?? []);
+  //const [selectedImages, setSelectedImages] = useState<ImageItem[]>(batchData.images ?? []); //Remove local state and use context directly
+  const selectedImages = batchData?.images ?? [];
 
   // Pick images from device
   const pickImages = async () => {
@@ -30,7 +31,7 @@ export default function ImageSelectionScreen() {
     if (!result.canceled) {
       const newItems = result.assets.map(asset => ({ id: uuid.v4() as string, uri: asset.uri }));
       const updatedImages = [...selectedImages, ...newItems].slice(0, 500);
-      setSelectedImages(updatedImages);
+      //setSelectedImages(updatedImages);
       setBatchData({ ...batchData, images: updatedImages }); // update context
     }
   };
@@ -38,13 +39,13 @@ export default function ImageSelectionScreen() {
   // Remove an image
   const removeImage = (id: string) => {
     const updatedImages = selectedImages.filter(img => img.id !== id);
-    setSelectedImages(updatedImages);
+    //setSelectedImages(updatedImages);
     setBatchData({ ...batchData, images: updatedImages });
   };
 
   // Clear all images
   const clearAll = () => {
-    setSelectedImages([]);
+    //setSelectedImages([]);
     setBatchData({ ...batchData, images: [] });
   };
 
@@ -104,7 +105,7 @@ export default function ImageSelectionScreen() {
             <Button
               mode="outlined"
               onPress={() => {
-                setSelectedImages([]);
+                //setSelectedImages([]);
                 if (batchData) {
                   setBatchData({ ...batchData, images: [] });
                 }
