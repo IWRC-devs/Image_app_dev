@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { View, ScrollView, Image, TouchableOpacity, StyleSheet, Alert, useColorScheme, ActivityIndicator } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { createNewBatch, useBatch } from '../../context/BatchContext';
+import { createNewBatch, ImageItem, useBatch } from '../../context/BatchContext';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from "@/constants/Config";
 
@@ -19,11 +19,12 @@ export default function ReviewSummaryScreen() {
 
   // Local state mirrors context images
   const selectedImages = batchData.images;
+  const [localImages, setLocalImages] = useState<ImageItem[]>(batchData.images);
 
   // Remove an image
   const removeImage = (id: string) => {
-    if (!batchData) return;
-    const updatedImages = selectedImages.filter(img => img.id !== id);
+    const updatedImages = localImages.filter(img => img.id !== id);
+    setLocalImages(updatedImages);
     setBatchData({ ...batchData, images: updatedImages });
   };
 
@@ -80,6 +81,8 @@ export default function ReviewSummaryScreen() {
         Alert.alert("Success", `Batch uploaded with ID: ${result.batchId}`);
         //reset to fresh batch
         setBatchData(createNewBatch());
+        // clear local images
+        setLocalImages([]);
       } else {
         console.error(result);
         Alert.alert("Upload failed", result.error || "Unknown error");
@@ -144,9 +147,9 @@ export default function ReviewSummaryScreen() {
           </View>
 
           {/* Selected Images Section */}
-          <ThemedText style={styles.heading}>Selected Images ({selectedImages.length})</ThemedText>
+          <ThemedText style={styles.heading}>Selected Images ({localImages.length})</ThemedText>
           <View style={styles.grid}>
-            {selectedImages.map(item => (
+            {localImages.map(item => (
               <View key={item.id} style={styles.imageWrapper}>
                 <Image source={{ uri: item.uri }} style={styles.thumbnail} />
 
@@ -159,7 +162,7 @@ export default function ReviewSummaryScreen() {
 
           </View>
 
-          {selectedImages.length > 0 && (
+          {localImages.length > 0 && (
             <View style={{ marginTop: 16, marginBottom: 12 }}>
               <TouchableOpacity style={styles.continueButton} onPress={handleUpload}>
                 <ThemedText style={styles.continueButtonText}>Upload</ThemedText>
