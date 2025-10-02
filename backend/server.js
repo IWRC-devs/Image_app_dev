@@ -130,7 +130,7 @@ app.post('/api/upload-batch', upload.array('images', 500), async (req, res) => {
     if (uploadedUrls.length > 0) {
       const values = uploadedUrls.map(url => [batchId, url]);
       await pool.query(
-        'INSERT INTO batch_images (batch_id, url) VALUES ?',
+        'INSERT INTO batch_images (batch_id, image_url) VALUES ?',
         [values]
       );
     }
