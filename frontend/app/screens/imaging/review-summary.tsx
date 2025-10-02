@@ -19,17 +19,32 @@ export default function ReviewSummaryScreen() {
 
   // Local state mirrors context images
   const selectedImages = batchData.images;
-  const [localImages, setLocalImages] = useState<ImageItem[]>(batchData.images);
+  //const [localImages, setLocalImages] = useState<ImageItem[]>(batchData.images);
 
   // Remove an image
   const removeImage = (id: string) => {
-    const updatedImages = localImages.filter(img => img.id !== id);
-    setLocalImages(updatedImages);
+    const updatedImages = selectedImages.filter(img => img.id !== id);
+    //setLocalImages(updatedImages);
     setBatchData({ ...batchData, images: updatedImages });
   };
 
   // Save and Upload
   const handleUpload = async () => {
+    if (!batchData) return;
+
+    // Validate required fields
+  if (
+    !batchData.name ||
+    !batchData.affiliationId ||
+    !batchData.sizeClass ||
+    !batchData.flowerAnswer ||
+    !batchData.cropAnswer ||
+    !batchData.groundCoverPercentId
+  ) {
+    Alert.alert("Validation Error", "Please fill in all required fields before uploading.");
+    return;
+  }
+
     if (selectedImages.length === 0) {
       Alert.alert("Please select at least one image to upload.");
       return;
@@ -82,7 +97,7 @@ export default function ReviewSummaryScreen() {
         //reset to fresh batch
         setBatchData(createNewBatch());
         // clear local images
-        setLocalImages([]);
+        //setLocalImages([]);
       } else {
         console.error(result);
         Alert.alert("Upload failed", result.error || "Unknown error");
@@ -147,9 +162,9 @@ export default function ReviewSummaryScreen() {
           </View>
 
           {/* Selected Images Section */}
-          <ThemedText style={styles.heading}>Selected Images ({localImages.length})</ThemedText>
+          <ThemedText style={styles.heading}>Selected Images ({selectedImages.length})</ThemedText>
           <View style={styles.grid}>
-            {localImages.map(item => (
+            {selectedImages.map(item => (
               <View key={item.id} style={styles.imageWrapper}>
                 <Image source={{ uri: item.uri }} style={styles.thumbnail} />
 
@@ -162,7 +177,7 @@ export default function ReviewSummaryScreen() {
 
           </View>
 
-          {localImages.length > 0 && (
+          {selectedImages.length > 0 && (
             <View style={{ marginTop: 16, marginBottom: 12 }}>
               <TouchableOpacity style={styles.continueButton} onPress={handleUpload}>
                 <ThemedText style={styles.continueButtonText}>Upload</ThemedText>
