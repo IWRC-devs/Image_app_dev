@@ -14,7 +14,7 @@ export default function ReviewSummaryScreen() {
 
   const colorScheme = useColorScheme();
   const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
 
   // Local state mirrors context images

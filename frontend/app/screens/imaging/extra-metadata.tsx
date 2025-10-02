@@ -97,7 +97,7 @@ export default function ExtraMetadataScreen() {
             ))}
           </View>
         </ScrollView>
-        {groundCoverPercent && (
+        {selectedGroundCoverPercentId && (
           <SafeAreaView
             edges={[]}
             style={{ paddingHorizontal: 0, paddingTop: 20, paddingBottom: 12 }}>

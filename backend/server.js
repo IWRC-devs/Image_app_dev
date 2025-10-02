@@ -77,6 +77,7 @@ const upload = multer({ storage });
 
 // Upload batch route
 app.post('/api/upload-batch', upload.array('images', 500), async (req, res) => {
+  console.log("Upload request received:", req.body);
   try {
     const {
       name,
@@ -112,7 +113,7 @@ app.post('/api/upload-batch', upload.array('images', 500), async (req, res) => {
     const query = `
       INSERT INTO batches
       (name, affiliation_id, size_class, flower_answer, crop_answer, ground_cover_percent_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
     const [batchResult] = await pool.execute(query, [
       name,
