@@ -28,20 +28,31 @@ export default function AffiliationList() {
   >(null);
   const [loading, setLoading] = useState(true);
 
+
+  /**
+  * @deprecated Use `getAffiliationsFromFile()` instead.
+  */
+  async function fetchAffiliationsFromAPI() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/affiliations`);
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  }
+
   useEffect(() => {
-    async function fetchAffiliations() {
+    async function load() {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/affiliations`);
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
-        const data = await res.json();
+        const data = await fetchAffiliationsFromAPI();
         setAffiliations(data);
-      } catch (err) {
-        console.error(err);
       } finally {
         setLoading(false);
       }
     }
-    fetchAffiliations();
+    load();
   }, []);
 
   const { batchData, setBatchData } = useBatch();

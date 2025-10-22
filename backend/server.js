@@ -47,7 +47,7 @@ app.get('/', (req, res) => {
   res.send('Hello from IWRC Imaging Backend!');
 });
 
-// Affiliations route
+// Affiliations route // to be deprecated
 app.get('/api/affiliations', async (req, res) => {
   try {
     const sql = 'SELECT id, name FROM affiliations';
@@ -59,7 +59,7 @@ app.get('/api/affiliations', async (req, res) => {
   }
 });
 
-// GroundCoverPercent route
+// GroundCoverPercent route // to be deprecated
 app.get('/api/ground-cover-percent', async (req, res) => {
   try {
     const sql = 'SELECT id, name FROM ground_cover_percent';
@@ -75,7 +75,7 @@ app.get('/api/ground-cover-percent', async (req, res) => {
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Upload batch route
+// Upload batch route 
 app.post('/api/upload-batch', upload.array('images', 500), async (req, res) => {
   console.log("Upload request received:", req.body);
   try {
