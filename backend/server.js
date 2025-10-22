@@ -47,7 +47,10 @@ app.get('/', (req, res) => {
   res.send('Hello from IWRC Imaging Backend!');
 });
 
-// Affiliations route // to be deprecated
+/**
+ * @deprecated This API route will be removed soon.
+ * Use the local file-based affiliations endpoint instead: `/api/file-affiliations`
+ */
 app.get('/api/affiliations', async (req, res) => {
   try {
     const sql = 'SELECT id, name FROM affiliations';
