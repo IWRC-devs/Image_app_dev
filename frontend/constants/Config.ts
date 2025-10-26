@@ -1,1 +1,1 @@
-export const API_BASE_URL = "https://imaging-backend-production.up.railway.app";
+export const API_BASE_URL = "https://iwrcbackend-production.up.railway.app";
