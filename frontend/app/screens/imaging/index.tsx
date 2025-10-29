@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedView } from "@/components/ThemedView";
 import { Ionicons } from "@expo/vector-icons";
 import { useBatch } from "../../context/BatchContext";
+import { getAffiliationsFromFile } from "@/data/affiliations";
 
 export default function AffiliationList() {
   const router = useRouter();
@@ -46,8 +47,10 @@ export default function AffiliationList() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await fetchAffiliationsFromAPI();
+        const data = await getAffiliationsFromFile();
         setAffiliations(data);
+      } catch (err) {
+        console.error("Error loading affiliations:", err);
       } finally {
         setLoading(false);
       }
