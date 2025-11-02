@@ -1,19 +1,39 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { router, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-import { Button } from "react-native-paper";
 import { Ionicons } from '@expo/vector-icons';
-
+import NetInfo from "@react-native-community/netinfo";
+import { syncPendingBatches } from "@/utils/syncService";
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { useEffect } from 'react';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...Ionicons.font, // load all Ionicons glyphs
+    ...Ionicons.font,
   });
+
+  useEffect(() => {
+    let isSyncing = false;
+    const startSync = async () => {
+      if (isSyncing) return;
+      isSyncing = true;
+      await syncPendingBatches();
+      isSyncing = false;
+    };
+
+    startSync();
+
+    // Watch for network changes
+    const unsubscribe = NetInfo.addEventListener(state => {
+      if (state.isConnected) startSync();
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   if (!loaded) {
     // Async font loading only occurs in development.
@@ -22,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack>
         <Stack.Screen
           name="index"

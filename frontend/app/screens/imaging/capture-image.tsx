@@ -8,6 +8,7 @@ import uuid from 'react-native-uuid';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { ImageItem, useBatch } from "../../context/BatchContext";
+import { saveImagePermanently } from '@/utils/fileUtils';
 
 export default function CaptureImageScreen() {
   const colorScheme = useColorScheme();

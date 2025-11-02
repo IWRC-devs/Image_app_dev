@@ -6,6 +6,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { createNewBatch, ImageItem, useBatch } from '../../context/BatchContext';
 import { Ionicons } from '@expo/vector-icons';
 import { API_BASE_URL } from "@/constants/Config";
+import { saveBatch } from '@/utils/batchStore';
 
 export default function ReviewSummaryScreen() {
   const router = useRouter();
@@ -28,22 +29,49 @@ export default function ReviewSummaryScreen() {
     setBatchData({ ...batchData, images: updatedImages });
   };
 
+
+  // Offline-first save
+  const handleSaveOffline = async () => {
+    if (!batchData.name || !batchData.affiliationId || !batchData.sizeClass ||
+      !batchData.flowerAnswer || !batchData.cropAnswer || !batchData.groundCoverPercentId) {
+      Alert.alert("Validation Error", "Please fill in all required fields before saving.");
+      return;
+    }
+
+    if (selectedImages.length === 0) {
+      Alert.alert("Validation Error", "Please add at least one image.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await saveBatch({ ...batchData, synced: false });
+      Alert.alert("Saved Locally", "Batch saved locally. It will upload automatically when online.");
+      setBatchData(createNewBatch());
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Save Failed", "Unable to save batch locally.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Save and Upload
-  const handleUpload = async () => {
+  const _handleUpload = async () => {
     if (!batchData) return;
 
     // Validate required fields
-  if (
-    !batchData.name ||
-    !batchData.affiliationId ||
-    !batchData.sizeClass ||
-    !batchData.flowerAnswer ||
-    !batchData.cropAnswer ||
-    !batchData.groundCoverPercentId
-  ) {
-    Alert.alert("Validation Error", "Please fill in all required fields before uploading.");
-    return;
-  }
+    if (
+      !batchData.name ||
+      !batchData.affiliationId ||
+      !batchData.sizeClass ||
+      !batchData.flowerAnswer ||
+      !batchData.cropAnswer ||
+      !batchData.groundCoverPercentId
+    ) {
+      Alert.alert("Validation Error", "Please fill in all required fields before uploading.");
+      return;
+    }
 
     if (selectedImages.length === 0) {
       Alert.alert("Please select at least one image to upload.");
@@ -108,10 +136,6 @@ export default function ReviewSummaryScreen() {
     } finally {
       setLoading(false);
     }
-
-
-
-
   };
 
   if (loading)
@@ -177,10 +201,11 @@ export default function ReviewSummaryScreen() {
 
           </View>
 
+          {/* Save Offline Button */}
           {selectedImages.length > 0 && (
             <View style={{ marginTop: 16, marginBottom: 12 }}>
-              <TouchableOpacity style={styles.continueButton} onPress={handleUpload}>
-                <ThemedText style={styles.continueButtonText}>Upload</ThemedText>
+              <TouchableOpacity style={styles.continueButton} onPress={handleSaveOffline}>
+                <ThemedText style={styles.continueButtonText}>Save</ThemedText>
               </TouchableOpacity>
             </View>
           )}
