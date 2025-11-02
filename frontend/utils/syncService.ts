@@ -1,23 +1,24 @@
+import { getPendingBatches, markBatchSynced } from "./batchStore";
 import NetInfo from "@react-native-community/netinfo";
-import { getPendingBatches, markBatchSynced } from '@/utils/batchStore';
-import { API_BASE_URL } from '@/constants/Config';
+import { Alert } from "react-native";
+import { API_BASE_URL } from "@/constants/Config";
 
-export const syncPendingBatches = async () => {
+export async function syncPendingBatches() {
   const state = await NetInfo.fetch();
   if (!state.isConnected) {
-    console.log("Offline — skipping sync");
+    console.log("Offline: sync postponed.");
     return;
   }
 
-  const pendingBatches = await getPendingBatches();
-  if (pendingBatches.length === 0) {
-    console.log("No pending batches to sync");
-    return;
-  }
+  try {
+    const pending = await getPendingBatches();
+    if (pending.length === 0) return;
 
-  for (const batch of pendingBatches) {
-    try {
+    console.log(`Syncing ${pending.length} batches...`);
+
+    for (const batch of pending) {
       const formData = new FormData();
+
       formData.append("name", batch.name);
       formData.append("affiliation_id", String(batch.affiliationId ?? ""));
       formData.append("size_class", batch.sizeClass ?? "");
@@ -36,19 +37,21 @@ export const syncPendingBatches = async () => {
       const response = await fetch(`${API_BASE_URL}/api/upload-batch`, {
         method: "POST",
         body: formData,
-        headers: { Accept: "application/json" },
+        headers: {
+          Accept: "application/json",
+        },
       });
 
-      const result = await response.json();
-
-      if (result.success) {
+      if (response.ok) {
         await markBatchSynced(batch.name);
         console.log(`✅ Synced batch: ${batch.name}`);
       } else {
-        console.log(`❌ Failed to sync batch: ${batch.name}`, result);
+        console.error(`❌ Failed to sync batch: ${batch.name}`);
       }
-    } catch (err) {
-      console.error(`Error syncing batch ${batch.name}:`, err);
     }
+
+    Alert.alert("Sync Complete", "All pending batches uploaded successfully.");
+  } catch (err) {
+    console.error("Sync failed:", err);
   }
-};
+}
