@@ -1,5 +1,3 @@
-// /types/index.ts
-
 export interface ImageItem {
   id: string;
   uri: string;
@@ -7,12 +5,13 @@ export interface ImageItem {
 
 export interface BatchData {
   name: string;
-  images: ImageItem[];
-  affiliationId?: number | undefined;
+  images: { id: string; uri: string }[];
+  affiliationId?: number;
   sizeClass?: string | null;
   flowerAnswer?: string | null;
   cropAnswer?: string | null;
-  groundCoverPercentId?: number | undefined;
-  selectedOption?: string | undefined;
-  synced?: boolean; // for offline sync tracking
+  groundCoverPercentId?: number;
+  selectedOption?: string;
+  synced?: boolean; 
+  createdAt?: string; 
 }
