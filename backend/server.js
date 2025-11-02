@@ -96,23 +96,24 @@ app.post('/api/upload-batch', upload.array('images', 500), async (req, res) => {
       return res.status(400).json({ error: 'No images uploaded' });
     }
 
-    // Upload images to Cloudinary
-    const uploadedUrls = [];
-    for (const file of req.files) {
-      const result = await new Promise((resolve, reject) => {
-        cloudinary.uploader.upload_stream(
+    // Step 1: Upload images to Cloudinary in parallel
+    const uploadPromises = files.map(file => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
           { folder: `batches/${name}`, format: 'jpg' },
           (error, result) => {
             if (error) reject(error);
-            else resolve(result);
+            else resolve(result.secure_url);
           }
-        ).end(file.buffer);
+        );
+        stream.end(file.buffer);
       });
-      uploadedUrls.push(result.secure_url);
-    }
+    });
+
+    const uploadedUrls = await Promise.all(uploadPromises);
 
 
-    // Insert batch metadata
+    // Step 2: Insert batch metadata
     const query = `
       INSERT INTO batches
       (name, affiliation_id, size_class, flower_answer, crop_answer, ground_cover_percent_id)
@@ -129,7 +130,7 @@ app.post('/api/upload-batch', upload.array('images', 500), async (req, res) => {
 
     const batchId = batchResult.insertId;
 
-    // Insert images into batch_images
+    // Step 3: Insert images into batch_images
     if (uploadedUrls.length > 0) {
       const values = uploadedUrls.map(url => [batchId, url]);
       await pool.query(
@@ -138,6 +139,7 @@ app.post('/api/upload-batch', upload.array('images', 500), async (req, res) => {
       );
     }
 
+    // Step 4: Respond with success
     res.json({ success: true, batchId, uploadedUrls });
   } catch (err) {
     console.error(err);
