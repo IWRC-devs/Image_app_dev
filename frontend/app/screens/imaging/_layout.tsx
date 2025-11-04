@@ -87,7 +87,13 @@ export default function ImagingLayout() {
             display: 'none', // Hide the tab bar for this specific screen
           },*/
         }} /> 
-
+        <Tabs.Screen
+        name="pending-uploads"
+        options={{
+          title: 'Pending Uploads',
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="camera" color={color} />,
+          href: null, 
+        }} /> 
     </Tabs>
     </BatchProvider>
   );
