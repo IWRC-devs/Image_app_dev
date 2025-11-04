@@ -7,10 +7,12 @@ import { ScrollView, useColorScheme, View, StyleSheet, TouchableOpacity, Activit
 import { useBatch } from "../../context/BatchContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "@/constants/Config";
+import { getGroundCoverPercentFromFile } from "@/data/groundCoverPercent";
 
 export default function ExtraMetadataScreen() {
   const colorScheme = useColorScheme();
   const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
+
   const { batchData, setBatchData } = useBatch();
   const [groundCoverPercent, setGroundCoverPercent] = useState<
     { id: number; name: string }[]
@@ -20,20 +22,34 @@ export default function ExtraMetadataScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  /**
+ * @deprecated Use `getAffiliationsFromFile()` instead.
+ */
+  async function fetchGroundCoverPercent() {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/ground-cover-percent`);
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      setGroundCoverPercent(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    async function fetchGroundCoverPercent() {
+    async function load() {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/ground-cover-percent`);
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
-        const data = await res.json();
+        const data = await getGroundCoverPercentFromFile();
         setGroundCoverPercent(data);
       } catch (err) {
-        console.error(err);
+        console.error("Error loading Ground Cover Percent:", err);
       } finally {
         setLoading(false);
       }
     }
-    fetchGroundCoverPercent();
+    load();
   }, []);
 
   // Continue to next screen
