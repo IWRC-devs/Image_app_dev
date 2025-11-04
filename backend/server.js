@@ -62,7 +62,10 @@ app.get('/api/affiliations', async (req, res) => {
   }
 });
 
-// GroundCoverPercent route // to be deprecated
+/**
+ * @deprecated This API route will be removed soon.
+ * Use the local file-based ground-cover-percent endpoint instead: `/api/ground-cover-percent`
+ */
 app.get('/api/ground-cover-percent', async (req, res) => {
   try {
     const sql = 'SELECT id, name FROM ground_cover_percent';
