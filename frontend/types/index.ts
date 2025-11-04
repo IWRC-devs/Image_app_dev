@@ -3,15 +3,16 @@ export interface ImageItem {
   uri: string;
 }
 
-export interface BatchData {
+export interface StoredBatch {
+  id: string | null;
   name: string;
-  images: { id: string; uri: string }[];
   affiliationId?: number;
-  sizeClass?: string | null;
-  flowerAnswer?: string | null;
-  cropAnswer?: string | null;
+  sizeClass: string | null;
+  flowerAnswer: string | null;
+  cropAnswer: string | null;
   groundCoverPercentId?: number;
-  selectedOption?: string;
-  synced?: boolean; 
-  createdAt?: string; 
+  images: ImageItem[];
+  selectedOption?: "manual" | "capture";
+  synced: boolean;
+  savedAt: string;
 }
