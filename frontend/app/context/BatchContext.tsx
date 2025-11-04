@@ -6,13 +6,14 @@ export type ImageItem = {
 };
 
 export type BatchData = {
+  id: string | null;
   name: string;
-  images: ImageItem[];
   affiliationId?: number;
   sizeClass: string | null;
   flowerAnswer: string | null;
   cropAnswer: string | null;
   groundCoverPercentId?: number;
+  images: ImageItem[];
   //cloudCover?: string | null;
   //groundResidue?: string | null;
   selectedOption?: "manual" | "capture";
@@ -44,13 +45,14 @@ export const BatchProvider = ({ children }: { children: ReactNode }) => {
 export const createNewBatch = (): BatchData => {
   const timestamp = new Date().toISOString();
   return {
+    id: null,
     name: `batch-${timestamp}`,
-    images: [],
     affiliationId: undefined,
     sizeClass: null,
     flowerAnswer: null,
     cropAnswer: null,
     groundCoverPercentId: undefined,
+    images: [],
     selectedOption: undefined,
   };
 };
