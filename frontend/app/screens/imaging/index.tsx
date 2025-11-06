@@ -66,6 +66,7 @@ export default function AffiliationList() {
     if (!batchData) {
       const timestamp = new Date().toISOString();
       setBatchData({
+        id:'',
         name: `batch-${timestamp}`,  // batch name generated once
         images: [],
         affiliationId: selectedAffiliation?.id ?? undefined,
