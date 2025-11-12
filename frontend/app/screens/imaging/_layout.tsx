@@ -81,18 +81,14 @@ export default function ImagingLayout() {
         name="review-summary"
         options={{
           title: 'Review & Upload',
-          tabBarIcon: ({ color }) => <Ionicons size={28} name="camera" color={color} />,
-          href: null, // This hides the tab from the tab bar
-          /*tabBarStyle: {
-            display: 'none', // Hide the tab bar for this specific screen
-          },*/
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="cloud" color={color} />,
+          href: null,
         }} /> 
         <Tabs.Screen
         name="pending-uploads"
         options={{
           title: 'Pending Uploads',
-          tabBarIcon: ({ color }) => <Ionicons size={28} name="camera" color={color} />,
-          href: null, 
+          tabBarIcon: ({ color }) => <Ionicons size={28} name="cloud-upload" color={color} />,
         }} /> 
     </Tabs>
     </BatchProvider>
