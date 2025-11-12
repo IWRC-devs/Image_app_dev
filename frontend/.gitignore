@@ -36,4 +36,16 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# Android Studio
+.idea/caches/
+.idea/libraries/
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries/
+.idea/shelf/
+*.iml
+.gradle
+/local.properties
+/build/
+
 app-example
