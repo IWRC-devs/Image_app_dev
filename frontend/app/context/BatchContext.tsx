@@ -6,6 +6,7 @@ export type ImageItem = {
 };
 
 export type BatchData = {
+  synced: any;
   id: string | null;
   name: string;
   affiliationId?: number;
@@ -45,6 +46,7 @@ export const BatchProvider = ({ children }: { children: ReactNode }) => {
 export const createNewBatch = (): BatchData => {
   const timestamp = new Date().toISOString();
   return {
+    synced: null,
     id: null,
     name: `batch-${timestamp}`,
     affiliationId: undefined,
