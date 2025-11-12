@@ -1,8 +1,9 @@
 {
   "expo": {
     "name": "IWRC Imaging",
-    "slug": "iwrcImaging",
-    "version": "1.0.1",
+    "slug": "iwrc-imaging",
+    "owner": "iwrc-devs",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "iwrcimaging",
@@ -42,7 +43,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "5558e665-aa83-4444-a5f5-00d1639b04ad"
+        "projectId": "d8a8982f-53b8-4d1c-8bc7-abe2be64243f"
       }
     }
   }
