@@ -26,7 +26,7 @@ export async function syncPendingBatches() {
       formData.append("crop_answer", batch.cropAnswer ?? "");
       formData.append("ground_cover_percent_id", String(batch.groundCoverPercentId ?? ""));
 
-      batch.images.forEach((img, idx) => {
+      batch.images.forEach((img: any, idx: any) => {
         formData.append("images", {
           uri: img.uri,
           name: `image-${idx}.jpg`,
