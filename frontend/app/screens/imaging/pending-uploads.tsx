@@ -1,25 +1,32 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Ionicons } from "@expo/vector-icons";
 import { getSavedBatches, deleteBatch } from "@/utils/batchStore";
 import { API_BASE_URL } from "@/constants/Config";
+import { useFocusEffect } from "expo-router";
 
 export default function PendingUploadsScreen() {
   const [batches, setBatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchBatches = async () => {
+  useFocusEffect(
+    useCallback(() => {
+      fetchPendingBatches();
+    }, [])
+  );
+
+  const fetchPendingBatches = async () => {
     setLoading(true);
     const saved = await getSavedBatches();
     setBatches(saved.filter(b => !b.synced));
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchBatches();
-  }, []);
+  /*useEffect(() => {
+    fetchPendingBatches();
+  }, []);*/
 
   const handleUpload = async (batch: any) => {
     Alert.alert("Uploading", `Uploading batch: ${batch.name}`);
@@ -52,7 +59,7 @@ export default function PendingUploadsScreen() {
       if (result.success) {
         Alert.alert("Uploaded", `Batch ${batch.name} uploaded successfully.`);
         await deleteBatch(batch.id);
-        fetchBatches();
+        fetchPendingBatches();
       } else {
         Alert.alert("Upload failed", result.error || "Unknown error");
       }
@@ -70,7 +77,7 @@ export default function PendingUploadsScreen() {
         style: "destructive",
         onPress: async () => {
           await deleteBatch(batch.id);
-          fetchBatches();
+          fetchPendingBatches();
         },
       },
     ]);
