@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { StoredBatch } from '@/types';
+import { BatchData } from '@/app/context/BatchContext';
 
 const BATCHES_DIR = `${FileSystem.documentDirectory}batches`;
 
@@ -83,6 +84,21 @@ export async function markBatchAsSynced(id: string) {
   const content = await FileSystem.readAsStringAsync(filePath);
   const batch = JSON.parse(content);
 
-  batch.synced = true;
   await FileSystem.writeAsStringAsync(filePath, JSON.stringify(batch));
 }
+
+export const getAllBatches = async (): Promise<BatchData[]> => {
+  try {
+    const data = await FileSystem.readAsStringAsync(BATCHES_DIR);
+    return data ? JSON.parse(data) : [];
+  } catch (err) {
+    console.warn('Failed to read batches file:', err);
+    return [];
+  }
+};
+
+
+export const getPendingBatches = async (): Promise<BatchData[]> => {
+  const batches = await getAllBatches();
+  return batches.filter(b => !b.synced);
+};
