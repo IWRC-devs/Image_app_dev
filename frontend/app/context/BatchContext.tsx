@@ -15,8 +15,6 @@ export type BatchData = {
   cropAnswer: string | null;
   groundCoverPercentId?: number;
   images: ImageItem[];
-  //cloudCover?: string | null;
-  //groundResidue?: string | null;
   selectedOption?: "manual" | "capture";
 };
 
