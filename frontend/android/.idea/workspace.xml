@@ -4,18 +4,7 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="82d21849-7e9d-4f06-9d4b-1f4118d08df9" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/caches/deviceStreaming.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app.json" beforeDir="false" afterPath="$PROJECT_DIR$/../app.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/context/BatchContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../app/context/BatchContext.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/screens/imaging/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../app/screens/imaging/_layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/screens/imaging/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../app/screens/imaging/index.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../app/screens/imaging/pending-uploads.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../app/screens/imaging/pending-uploads.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../eas.json" beforeDir="false" afterPath="$PROJECT_DIR$/../eas.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../utils/batchStore.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../utils/batchStore.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../utils/syncService.ts" beforeDir="false" afterPath="$PROJECT_DIR$/../utils/syncService.ts" afterDir="false" />
-    </list>
+    <list default="true" id="82d21849-7e9d-4f06-9d4b-1f4118d08df9" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -24,7 +13,7 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[DeviceId(pluginId=PhysicalDevice, isTemplate=false, identifier=serial=R5CRB1MLR0Y)]" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="device_and_snapshot_combo_box_target[DeviceId(pluginId=LocalEmulator, isTemplate=false, identifier=path=C:\Users\vimal\.android\avd\Medium_Phone.avd)]" />
   <component name="ExternalProjectsData">
     <projectState path="$PROJECT_DIR$">
       <ProjectState />

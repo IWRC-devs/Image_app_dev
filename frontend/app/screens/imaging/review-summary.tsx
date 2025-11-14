@@ -29,7 +29,7 @@ export default function ReviewSummaryScreen() {
 
   const selectedImages = batchData?.images ?? [];
 
-  /** ✅ Monitor connection status */
+  /** Monitor connection status */
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       setIsConnected(Boolean(state.isConnected && state.isInternetReachable));
@@ -40,13 +40,13 @@ export default function ReviewSummaryScreen() {
   if (!batchData)
     return <ThemedText>No batch data available. Please go back.</ThemedText>;
 
-  /** ✅ Remove image from batch */
+  /** Remove image from batch */
   const removeImage = (id: string) => {
     const updatedImages = selectedImages.filter((img) => img.id !== id);
     setBatchData({ ...batchData, images: updatedImages });
   };
 
-  /** ✅ Validate before saving or uploading */
+  /** Validate before saving or uploading */
   const validateBatch = (): boolean => {
     const requiredFields = [
       batchData.name,
@@ -70,7 +70,7 @@ export default function ReviewSummaryScreen() {
     return true;
   };
 
-  /** ✅ Offline-first save */
+  /** Offline-first save */
   const handleSaveOffline = async () => {
     if (!validateBatch()) return;
 
@@ -93,7 +93,7 @@ export default function ReviewSummaryScreen() {
     }
   };
 
-  /** ✅ Upload immediately if online */
+  /** Upload immediately if online */
   const handleUpload = async () => {
     if (!validateBatch()) return;
     if (!isConnected) {
@@ -201,7 +201,7 @@ export default function ReviewSummaryScreen() {
             ))}
           </View>
 
-          {/* ✅ Buttons */}
+          {/* Buttons */}
           {selectedImages.length > 0 && (
             <View style={{ marginTop: 16, marginBottom: 12 }}>
               {!isConnected ? (
