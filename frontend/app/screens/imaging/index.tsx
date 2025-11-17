@@ -75,8 +75,6 @@ export default function AffiliationList() {
         flowerAnswer: null,
         cropAnswer: null,
         groundCoverPercentId: undefined,
-        //cloudCover: undefined,
-        //groundResidue: undefined,
         selectedOption: undefined,
       });
     }
