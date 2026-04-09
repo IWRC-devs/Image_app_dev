@@ -84,7 +84,7 @@ export default function ExtraMetadataScreen() {
       </ThemedView>
       <View style={{ flex: 1, padding: 16, position: 'relative' }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-          <ThemedText style={styles.label}>Ground Cover %</ThemedText>
+          <ThemedText style={styles.label}>Lighting</ThemedText>
           <View style={styles.listContainer}>
             {groundCoverPercent.map((opt) => (
               <TouchableOpacity

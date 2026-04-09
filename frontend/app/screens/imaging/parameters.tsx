@@ -76,16 +76,16 @@ export default function ParametersScreen() {
           contentContainerStyle={{ paddingBottom: 60, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}>
           <View style={styles.container}>
-            <ThemedText style={styles.label}>Select Size Class</ThemedText>
+            <ThemedText style={styles.label}>Background of target weed</ThemedText>
             {renderList(sizeClasses, sizeClass, setSizeClass)}
 
             <ThemedText style={[styles.label, { marginTop: 20 }]}>
-              Do you see any flower, fruit or seeds?
+              Growth Stage
             </ThemedText>
             {renderList(flowerOptions, flowerAnswer, setFlowerAnswer)}
 
             <ThemedText style={[styles.label, { marginTop: 20 }]}>
-              Is there a crop or is this a fallow field?
+              Soil Color
             </ThemedText>
             {renderList(cropOptions, cropAnswer, setCropAnswer)}
           </View>

@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import {
   View,
   StyleSheet,
@@ -15,81 +15,74 @@ import { ThemedView } from "@/components/ThemedView";
 import { Ionicons } from "@expo/vector-icons";
 import { useBatch } from "../../context/BatchContext";
 import { getAffiliationsFromFile } from "@/data/affiliations";
+import { UserContext } from "@/app/context/UserContext";
 
 export default function AffiliationList() {
   const router = useRouter();
+  const { user } = useContext(UserContext);
   const colorScheme = useColorScheme();
   const backgroundColor = colorScheme === "dark" ? "#1D3D47" : "#A1CEDC";
-
   const [affiliations, setAffiliations] = useState<
-    { id: number; name: string }[]
-  >([]);
-  const [selectedAffiliation, setSelectedAffiliation] = useState<
     { id: number; name: string } | null
   >(null);
   const [loading, setLoading] = useState(true);
 
 
-  /**
-  * @deprecated Use `getAffiliationsFromFile()` instead.
-  */
-  async function fetchAffiliationsFromAPI() {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/affiliations`);
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      return await res.json();
-    } catch (err) {
-      console.error(err);
-      throw err;
-    }
-  }
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await getAffiliationsFromFile();
-        setAffiliations(data);
-      } catch (err) {
-        console.error("Error loading affiliations:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
 
   const { batchData, setBatchData } = useBatch();
-  const timestamp = new Date().toISOString();
 
   // Generate initial batch data only if it doesn't exist yet
   useEffect(() => {
-    if (!batchData) {
-      const timestamp = new Date().toISOString();
-      setBatchData({
-        synced: false,
-        id:'',
-        name: `batch-${timestamp}`,  // batch name generated once
-        images: [],
-        affiliationId: selectedAffiliation?.id ?? undefined,
-        sizeClass: null,
-        flowerAnswer: null,
-        cropAnswer: null,
-        groundCoverPercentId: undefined,
-        selectedOption: undefined,
-      });
+    async function initBatch() {
+      console.log("user1:", user);
+      if (!batchData) {
+        if (!user) return;
+        const timestamp = new Date().toISOString();
+        const newBatch = {
+          synced: false,
+          id: '',
+          name: `batch-${timestamp}`,  // batch name generated once
+          images: [],
+          affiliationId: undefined,
+          sizeClass: null,
+          flowerAnswer: null,
+          cropAnswer: null,
+          groundCoverPercentId: undefined,
+          selectedOption: undefined,
+        };
+        setBatchData(newBatch);
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/find-or-create`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              country_id: user.country_id,
+              team_name: user.team_name,
+              country_name: user.country_name,
+              country_code: user.country_code
+            }),
+          });
+          const data = await res.json();
+          console.log("Affiliations:", data);
+          setAffiliations(data);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      }
     }
-  }, []);
+    initBatch();
+  }, [user]);
 
   // Continue to next screen
   const handleContinue = () => {
-    if (selectedAffiliation && batchData) {
+    if (batchData) {
       // update batchData with selected affiliation
-      if (batchData) {
-        setBatchData({
-          ...batchData,
-          affiliationId: selectedAffiliation.id, // update only this field
-        });
-      }
+      setBatchData({
+        ...batchData,
+        affiliationId: affiliations?.id, // update only this field
+      });
 
       // navigate to next screen
       router.push("../../screens/imaging/parameters"); // no params needed
@@ -109,7 +102,7 @@ export default function AffiliationList() {
     <View style={{ flex: 1 }}>
       <ThemedView style={[styles.titleContainer, { backgroundColor }]}>
         <ThemedText type="title" style={styles.title}>
-          Select an affiliation
+          Affiliation
         </ThemedText>
       </ThemedView>
       <View style={{ flex: 1, padding: 16 }}>
@@ -117,39 +110,12 @@ export default function AffiliationList() {
         <ScrollView
           contentContainerStyle={{ paddingBottom: 60, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}>
+          <ThemedText style={styles.affiliation}>{affiliations?.name}</ThemedText>
 
-          {affiliations.map((aff) => (
-            <TouchableOpacity
-              key={aff.id}
-              style={[
-                styles.item,
-                selectedAffiliation?.id === aff.id && styles.selectedItem,
-              ]}
-              onPress={() => setSelectedAffiliation(aff)}
-            >
-              <ThemedText
-                style={[
-                  styles.itemText,
-                  selectedAffiliation?.id === aff.id && styles.selectedText,
-                ]}
-              >
-                {aff.name}
-              </ThemedText>
-
-              {selectedAffiliation?.id === aff.id && (
-                <Ionicons
-                  name="checkmark-circle"
-                  size={30}
-                  color="black"
-                  style={{ marginLeft: 8 }}
-                />
-              )}
-
-            </TouchableOpacity>
-          ))}
+         
 
         </ScrollView>
-        {selectedAffiliation && (
+        {affiliations && (
           <SafeAreaView
             edges={[]}
             style={{ paddingHorizontal: 0, paddingTop: 20, paddingBottom: 12 }}>
@@ -208,4 +174,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
+  affiliation: { fontSize: 20, marginBottom: 40 },
 });

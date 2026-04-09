@@ -35,7 +35,7 @@ export default function HomeScreen() {
   );
 }
 
-const showRegister = false;
+const showRegister = true;
 
 const styles = StyleSheet.create({
   safeArea: {

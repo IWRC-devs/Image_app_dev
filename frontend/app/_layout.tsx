@@ -8,6 +8,7 @@ import NetInfo from "@react-native-community/netinfo";
 import { syncPendingBatches } from "@/utils/syncService";
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useEffect } from 'react';
+import { UserProvider } from "@/app/context/UserContext";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -41,6 +42,7 @@ export default function RootLayout() {
   }
 
   return (
+    <UserProvider>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <Stack>
@@ -62,5 +64,6 @@ export default function RootLayout() {
         />
       </Stack>
     </ThemeProvider>
+    </UserProvider>
   );
 }
