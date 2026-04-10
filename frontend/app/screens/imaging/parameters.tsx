@@ -1,11 +1,12 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { ScrollView, useColorScheme, View, StyleSheet, TouchableOpacity } from "react-native";
+import { useState, useEffect } from "react";
+import { ScrollView, useColorScheme, View, StyleSheet, TouchableOpacity, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useBatch } from "../../context/BatchContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { getBotanicalNamesFromFile } from "@/data/botanicalName";
 
 export default function ParametersScreen() {
   const colorScheme = useColorScheme();
@@ -20,10 +21,76 @@ export default function ParametersScreen() {
   const [weedBackground, setWeedBackground] = useState<string | null>(null);
   const [growthStage, setGrowthStage] = useState<string | null>(null);
   const [soilColor, setSoilColor] = useState<string | null>(null);
+  const [botanicalName, setBotanicalName] = useState("");
+  const [botanicalOptions, setBotanicalOptions] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  // Continue to next screen
-  const onContinue = () => {
-    if (!weedBackground || !growthStage || !soilColor) return;
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await getBotanicalNamesFromFile();
+        setBotanicalOptions(data); // 
+      } catch (err) {
+        console.error("Error loading Botanical Names:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, []);
+
+  // =========================
+  // FILTERED LIST (AUTOCOMPLETE)
+  // =========================
+  const filteredOptions =
+    botanicalName.length === 0
+      ? botanicalOptions
+      : botanicalOptions.filter((item) =>
+        item.name.toLowerCase().includes(botanicalName.toLowerCase())
+      );
+
+
+  // =========================
+  // SELECT OPTION
+  // =========================
+  const selectBotanical = (name: string) => {
+    setBotanicalName(name);
+    setShowDropdown(false);
+  };
+
+  // =========================
+  // SAVE NEW BOTANICAL NAME
+  // =========================
+  const ensureBotanicalExists = async (name: string) => {
+    const exists = botanicalOptions.some(
+      (item) => item.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (!exists) {
+      const newItem = {
+        id: Date.now(),
+        name,
+      };
+
+      const updated = [...botanicalOptions, newItem];
+      setBotanicalOptions(updated);
+
+      // TODO: persist to file
+      // await saveBotanicalNamesToFile(updated);
+    }
+  };
+
+  // =========================
+  // CONTINUE
+  // =========================
+  const onContinue = async () => {
+    if (!weedBackground || !growthStage || !soilColor || !botanicalName) return;
+
+    await ensureBotanicalExists(botanicalName);
 
     if (batchData) {
       setBatchData({
@@ -31,6 +98,7 @@ export default function ParametersScreen() {
         weedBackground,
         growthStage,
         soilColor,
+        botanicalName: botanicalName,
       });
     }
     router.push("../../screens/imaging/extra-metadata");
@@ -62,6 +130,9 @@ export default function ParametersScreen() {
     ));
   };
 
+  // =========================
+  // UI
+  // =========================
   return (
     <View style={{ flex: 1 }}>
       <ThemedView style={[styles.titleContainer, { backgroundColor }]}>
@@ -74,15 +145,45 @@ export default function ParametersScreen() {
         <ScrollView
           contentContainerStyle={{ paddingBottom: 60, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}>
+          {/* ================= BOTANICAL NAME ================= */}
+          <ThemedText style={styles.label}>Botanical Name</ThemedText>
+
+          <TextInput
+            value={botanicalName}
+            onChangeText={(text) => {
+              setBotanicalName(text);
+              setShowDropdown(true);
+            }}
+            placeholder="Type or select botanical name"
+            style={styles.input}
+            onFocus={() => setShowDropdown(true)}
+          />
+
+          {showDropdown && filteredOptions.length > 0 && (
+            <View style={styles.dropdown}>
+              {filteredOptions.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.dropdownItem}
+                  onPress={() => selectBotanical(item.name)}
+                >
+                  <ThemedText>{item.name}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {/* ================= Background of target weed ================= */}
           <View style={styles.container}>
-            <ThemedText style={styles.label}>Background of target weed</ThemedText>
+            <ThemedText style={[styles.label, { marginTop: 20 }]}>Background of target weed</ThemedText>
             {renderList(weedBackgroundOptions, weedBackground, setWeedBackground)}
 
+            {/* ================= Growth Stage ================= */}
             <ThemedText style={[styles.label, { marginTop: 20 }]}>
               Growth Stage
             </ThemedText>
             {renderList(growthStageOptions, growthStage, setGrowthStage)}
 
+            {/* ================= Soil Color ================= */}
             <ThemedText style={[styles.label, { marginTop: 20 }]}>
               Soil Color
             </ThemedText>
@@ -139,5 +240,28 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+    fontSize: 16,
+  },
+
+  dropdown: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    marginTop: 5,
+    maxHeight: 180,
+  },
+
+  dropdownItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
   },
 });

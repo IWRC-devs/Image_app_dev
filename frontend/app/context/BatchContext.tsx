@@ -10,6 +10,7 @@ export type BatchData = {
   id: string | null;
   name: string;
   affiliationId?: number;
+  botanicalName: string | null;
   weedBackground: string | null;
   growthStage: string | null;
   soilColor: string | null;
@@ -48,6 +49,7 @@ export const createNewBatch = (): BatchData => {
     id: null,
     name: `batch-${timestamp}`,
     affiliationId: undefined,
+    botanicalName: null,
     weedBackground: null,
     growthStage: null,
     soilColor: null,

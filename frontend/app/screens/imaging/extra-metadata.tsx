@@ -14,10 +14,10 @@ export default function ExtraMetadataScreen() {
   const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
 
   const { batchData, setBatchData } = useBatch();
-  const [groundCoverPercent, setGroundCoverPercent] = useState<
+  const [lighting, setLighting] = useState<
     { id: number; name: string }[]
   >([]);
-  const [selectedLightingId, setSelectedGroundCoverPercent] = useState<number | null>(
+  const [selectedLightingId, setSelectedLighting] = useState<number | null>(
     batchData?.lightingId ?? null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -30,7 +30,7 @@ export default function ExtraMetadataScreen() {
       const res = await fetch(`${API_BASE_URL}/api/ground-cover-percent`);
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
       const data = await res.json();
-      setGroundCoverPercent(data);
+      setLighting(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -42,7 +42,7 @@ export default function ExtraMetadataScreen() {
     async function load() {
       try {
         const data = await getLightingFromFile();
-        setGroundCoverPercent(data);
+        setLighting(data);
       } catch (err) {
         console.error("Error loading Lighting:", err);
       } finally {
@@ -86,14 +86,14 @@ export default function ExtraMetadataScreen() {
         <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
           <ThemedText style={styles.label}>Lighting</ThemedText>
           <View style={styles.listContainer}>
-            {groundCoverPercent.map((opt) => (
+            {lighting.map((opt) => (
               <TouchableOpacity
                 key={opt.id}
                 style={[
                   styles.item,
                   selectedLightingId === opt.id && styles.selectedItem,
                 ]}
-                onPress={() => setSelectedGroundCoverPercent(opt.id)}
+                onPress={() => setSelectedLighting(opt.id)}
               >
                 <ThemedText style={[
                   styles.itemText,
