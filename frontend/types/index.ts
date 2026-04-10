@@ -7,10 +7,10 @@ export interface StoredBatch {
   id: string | null;
   name: string;
   affiliationId?: number;
-  sizeClass: string | null;
-  flowerAnswer: string | null;
-  cropAnswer: string | null;
-  groundCoverPercentId?: number;
+  weedBackground: string | null;
+  growthStage: string | null;
+  soilColor: string | null;
+  lightingId?: number;
   images: ImageItem[];
   selectedOption?: "manual" | "capture";
   synced: boolean;

@@ -14,24 +14,23 @@ export default function ParametersScreen() {
   //const params = useLocalSearchParams();
   const { batchData, setBatchData } = useBatch();
 
-  const sizeClasses = ["Small", "Medium", "Large"];
-  const flowerOptions = ["Yes", "No"];
-  const cropOptions = ["Crop", "Fallow"];
-
-  const [sizeClass, setSizeClass] = useState<string | null>(null);
-  const [flowerAnswer, setFlowerAnswer] = useState<string | null>(null);
-  const [cropAnswer, setCropAnswer] = useState<string | null>(null);
+  const weedBackgroundOptions = ["Wheat"];
+  const growthStageOptions = ["Yes", "No"];
+  const soilColorOptions = ["Black", "Brown", "Grey", "Pale Bleached", "Red", "Yellow Brown"];
+  const [weedBackground, setWeedBackground] = useState<string | null>(null);
+  const [growthStage, setGrowthStage] = useState<string | null>(null);
+  const [soilColor, setSoilColor] = useState<string | null>(null);
 
   // Continue to next screen
   const onContinue = () => {
-    if (!sizeClass || !flowerAnswer || !cropAnswer) return;
+    if (!weedBackground || !growthStage || !soilColor) return;
 
     if (batchData) {
       setBatchData({
         ...batchData!,
-        sizeClass,
-        flowerAnswer,
-        cropAnswer,
+        weedBackground,
+        growthStage,
+        soilColor,
       });
     }
     router.push("../../screens/imaging/extra-metadata");
@@ -77,20 +76,20 @@ export default function ParametersScreen() {
           showsVerticalScrollIndicator={false}>
           <View style={styles.container}>
             <ThemedText style={styles.label}>Background of target weed</ThemedText>
-            {renderList(sizeClasses, sizeClass, setSizeClass)}
+            {renderList(weedBackgroundOptions, weedBackground, setWeedBackground)}
 
             <ThemedText style={[styles.label, { marginTop: 20 }]}>
               Growth Stage
             </ThemedText>
-            {renderList(flowerOptions, flowerAnswer, setFlowerAnswer)}
+            {renderList(growthStageOptions, growthStage, setGrowthStage)}
 
             <ThemedText style={[styles.label, { marginTop: 20 }]}>
               Soil Color
             </ThemedText>
-            {renderList(cropOptions, cropAnswer, setCropAnswer)}
+            {renderList(soilColorOptions, soilColor, setSoilColor)}
           </View>
         </ScrollView>
-        {(sizeClass && flowerAnswer && cropAnswer) && (
+        {(weedBackground && growthStage && soilColor) && (
           <SafeAreaView
             edges={[]}
             style={{ paddingHorizontal: 0, paddingTop: 20, paddingBottom: 12 }}>

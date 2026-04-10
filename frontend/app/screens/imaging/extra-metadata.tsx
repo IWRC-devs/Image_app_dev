@@ -7,7 +7,7 @@ import { ScrollView, useColorScheme, View, StyleSheet, TouchableOpacity, Activit
 import { useBatch } from "../../context/BatchContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_BASE_URL } from "@/constants/Config";
-import { getGroundCoverPercentFromFile } from "@/data/groundCoverPercent";
+import { getLightingFromFile } from "@/data/lighting";
 
 export default function ExtraMetadataScreen() {
   const colorScheme = useColorScheme();
@@ -17,8 +17,8 @@ export default function ExtraMetadataScreen() {
   const [groundCoverPercent, setGroundCoverPercent] = useState<
     { id: number; name: string }[]
   >([]);
-  const [selectedGroundCoverPercentId, setSelectedGroundCoverPercent] = useState<number | null>(
-    batchData?.groundCoverPercentId ?? null);
+  const [selectedLightingId, setSelectedGroundCoverPercent] = useState<number | null>(
+    batchData?.lightingId ?? null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -41,10 +41,10 @@ export default function ExtraMetadataScreen() {
   useEffect(() => {
     async function load() {
       try {
-        const data = await getGroundCoverPercentFromFile();
+        const data = await getLightingFromFile();
         setGroundCoverPercent(data);
       } catch (err) {
-        console.error("Error loading Ground Cover Percent:", err);
+        console.error("Error loading Lighting:", err);
       } finally {
         setLoading(false);
       }
@@ -54,12 +54,12 @@ export default function ExtraMetadataScreen() {
 
   // Continue to next screen
   const onContinue = () => {
-    if (selectedGroundCoverPercentId === null || selectedGroundCoverPercentId === undefined) return;
+    if (selectedLightingId === null || selectedLightingId === undefined) return;
 
     if (batchData) {
       setBatchData({
         ...batchData!,
-        groundCoverPercentId: selectedGroundCoverPercentId,
+        lightingId: selectedLightingId,
       });
     }
 
@@ -91,17 +91,17 @@ export default function ExtraMetadataScreen() {
                 key={opt.id}
                 style={[
                   styles.item,
-                  selectedGroundCoverPercentId === opt.id && styles.selectedItem,
+                  selectedLightingId === opt.id && styles.selectedItem,
                 ]}
                 onPress={() => setSelectedGroundCoverPercent(opt.id)}
               >
                 <ThemedText style={[
                   styles.itemText,
-                  selectedGroundCoverPercentId === opt.id && styles.selectedText
+                  selectedLightingId === opt.id && styles.selectedText
                 ]}>
                   {opt.name}
                 </ThemedText>
-                {selectedGroundCoverPercentId === opt.id && (
+                {selectedLightingId === opt.id && (
                   <Ionicons
                     name="checkmark-circle"
                     size={30}
@@ -113,7 +113,7 @@ export default function ExtraMetadataScreen() {
             ))}
           </View>
         </ScrollView>
-        {selectedGroundCoverPercentId && (
+        {selectedLightingId && (
           <SafeAreaView
             edges={[]}
             style={{ paddingHorizontal: 0, paddingTop: 20, paddingBottom: 12 }}>

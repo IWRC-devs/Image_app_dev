@@ -34,7 +34,7 @@ export default function ImageOptionScreen() {
     setBatchData({
       ...batchData,
       selectedOption,
-      // batchData already contains affiliationId, sizeClass, flowerAnswer, cropAnswer, groundCoverPercent, etc.
+      // batchData already contains affiliationId, weedBackground, growthStage, soilColor, groundCoverPercent, etc.
     });
 
     // Navigate to the next screen

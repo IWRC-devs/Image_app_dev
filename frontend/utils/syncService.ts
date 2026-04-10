@@ -21,10 +21,10 @@ export async function syncPendingBatches() {
 
       formData.append("name", batch.name);
       formData.append("affiliation_id", String(batch.affiliationId ?? ""));
-      formData.append("size_class", batch.sizeClass ?? "");
-      formData.append("flower_answer", batch.flowerAnswer ?? "");
-      formData.append("crop_answer", batch.cropAnswer ?? "");
-      formData.append("ground_cover_percent_id", String(batch.groundCoverPercentId ?? ""));
+      formData.append("size_class", batch.weedBackground ?? "");
+      formData.append("flower_answer", batch.growthStage ?? "");
+      formData.append("crop_answer", batch.soilColor ?? "");
+      formData.append("ground_cover_percent_id", String(batch.lightingId ?? ""));
 
       batch.images.forEach((img: any, idx: any) => {
         formData.append("images", {

@@ -44,10 +44,10 @@ export default function AffiliationList() {
           name: `batch-${timestamp}`,  // batch name generated once
           images: [],
           affiliationId: undefined,
-          sizeClass: null,
-          flowerAnswer: null,
-          cropAnswer: null,
-          groundCoverPercentId: undefined,
+          weedBackground: null,
+          growthStage: null,
+          soilColor: null,
+          lightingId: undefined,
           selectedOption: undefined,
         };
         setBatchData(newBatch);

@@ -51,10 +51,10 @@ export default function ReviewSummaryScreen() {
     const requiredFields = [
       batchData.name,
       batchData.affiliationId,
-      batchData.sizeClass,
-      batchData.flowerAnswer,
-      batchData.cropAnswer,
-      batchData.groundCoverPercentId,
+      batchData.weedBackground,
+      batchData.growthStage,
+      batchData.soilColor,
+      batchData.lightingId,
     ];
 
     if (requiredFields.some((f) => !f)) {
@@ -107,12 +107,12 @@ export default function ReviewSummaryScreen() {
       const formData = new FormData();
       formData.append("name", batchData.name);
       formData.append("affiliation_id", String(batchData.affiliationId ?? ""));
-      formData.append("size_class", batchData.sizeClass ?? "");
-      formData.append("flower_answer", batchData.flowerAnswer ?? "");
-      formData.append("crop_answer", batchData.cropAnswer ?? "");
+      formData.append("size_class", batchData.weedBackground ?? "");
+      formData.append("flower_answer", batchData.growthStage ?? "");
+      formData.append("crop_answer", batchData.soilColor ?? "");
       formData.append(
         "ground_cover_percent_id",
-        String(batchData.groundCoverPercentId ?? "")
+        String(batchData.lightingId ?? "")
       );
 
       selectedImages.forEach((img, idx) => {
@@ -172,10 +172,10 @@ export default function ReviewSummaryScreen() {
             {[ 
               { label: "Batch Name", value: batchData.name },
               { label: "Affiliation ID", value: batchData.affiliationId },
-              { label: "Ground Cover % ID", value: batchData.groundCoverPercentId },
-              { label: "Size Class", value: batchData.sizeClass },
-              { label: "Flower/Fruit/Seed", value: batchData.flowerAnswer },
-              { label: "Crop or Fallow", value: batchData.cropAnswer },
+              { label: "Ground Cover % ID", value: batchData.lightingId },
+              { label: "Size Class", value: batchData.weedBackground },
+              { label: "Flower/Fruit/Seed", value: batchData.growthStage },
+              { label: "Crop or Fallow", value: batchData.soilColor },
             ].map((item, idx) => (
               <View key={idx} style={styles.summaryRow}>
                 <ThemedText style={styles.summaryLabel}>{item.label}:</ThemedText>
