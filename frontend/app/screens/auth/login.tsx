@@ -27,7 +27,14 @@ export default function LoginScreen() {
     // Validation
     const validateForm = () => {
         let newErrors: any = {};
-        if (!username.trim()) newErrors.username = "Required";
+        if (!username.trim()) {
+            newErrors.username = "Email is required";
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(username)) {
+                newErrors.username = "Enter a valid email";
+            }
+        }
         if (!password.trim()) newErrors.password = "Required";
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -48,7 +55,7 @@ export default function LoginScreen() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    username,
+                    username: username.toLowerCase(),
                     password,
                 }),
             });
@@ -60,7 +67,7 @@ export default function LoginScreen() {
 
             // Save user to AsyncStorage
             await AsyncStorage.setItem("user", JSON.stringify(data.user));
-            
+
             // Save to context
             setUser({
                 id: data.user.id,
@@ -99,7 +106,7 @@ export default function LoginScreen() {
                 {/* Username */}
                 <TextInput
                     style={[styles.input, errors.username && styles.inputError]}
-                    placeholder="Username"
+                    placeholder="Email"
                     placeholderTextColor="#888"
                     value={username}
                     onChangeText={(text) => {
@@ -107,6 +114,8 @@ export default function LoginScreen() {
                         setErrors((prev: any) => ({ ...prev, username: null }));
                     }}
                     autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoComplete="email"
                 />
                 {errors.username && (
                     <Text style={styles.errorText}>{errors.username}</Text>

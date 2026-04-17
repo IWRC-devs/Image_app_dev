@@ -47,7 +47,10 @@ export default function RegisterScreen() {
 
     // Basic validation
     const validateForm = () => {
-        if (!username.trim()) return "Username is required";
+        if (!username.trim()) return "Email is required";
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(username)) return "Enter a valid email address";
+
         if (!password.trim()) return "Password is required";
         if (password.length < 4) return "Password must be at least 4 characters";
         if (!countryId || countryId === 0)
@@ -105,14 +108,16 @@ export default function RegisterScreen() {
             <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 <Text style={styles.title}>Register User</Text>
 
-                {/* Username */}
+                {/* Email */}
                 <TextInput
                     style={styles.input}
-                    placeholder="Username"
+                    placeholder="Email"
                     placeholderTextColor="#888"
                     value={username}
                     onChangeText={setUsername}
                     autoCapitalize="none"
+                    keyboardType="email-address"
+                    autoComplete="email"
                 />
 
                 {/* Password */}
