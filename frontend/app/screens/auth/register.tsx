@@ -89,7 +89,7 @@ export default function RegisterScreen() {
                 throw new Error(data.message || "Registration failed");
             }
 
-            Alert.alert("Success", "User registered successfully", [
+            Alert.alert("Verify Email", "Registration successful. Please check your email and verify your account.", [
                 { text: "OK", onPress: () => router.back() },
             ]);
 

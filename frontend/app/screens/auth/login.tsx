@@ -23,6 +23,7 @@ export default function LoginScreen() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<any>({});
+    const [showResend, setShowResend] = useState(false);
 
     // Validation
     const validateForm = () => {
@@ -89,9 +90,39 @@ export default function LoginScreen() {
             router.replace("../imaging");
 
         } catch (err: any) {
-            Alert.alert("Error", err.message);
+            if (err.message.includes("verify")) {
+                Alert.alert(
+                    "Email not verified",
+                    "Please verify your email first.",
+                );
+                setShowResend(true);
+            } else {
+                Alert.alert("Error", err.message);
+            }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleResend = async () => {
+        if (!username.trim()) {
+            Alert.alert("Enter your email first");
+            return;
+        }
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/resend-verification`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ username }),
+            });
+
+            const data = await res.json();
+
+            Alert.alert("Info", data.message);
+        } catch (err) {
+            Alert.alert("Error", "Failed to resend email");
         }
     };
 
@@ -157,6 +188,21 @@ export default function LoginScreen() {
                 >
                     <Text style={styles.linkText}>Create an account</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => router.push("/screens/auth/forgot")}>
+                    <Text style={{ color: "#60a5fa", textAlign: "center", marginTop: 10 }}>
+                        Forgot Password?
+                    </Text>
+                </TouchableOpacity>
+
+                {showResend && (
+                    <TouchableOpacity
+                        onPress={handleResend}
+                        style={styles.resendBtn}
+                    >
+                        <Text style={styles.resendText}>Resend verification email</Text>
+                    </TouchableOpacity>
+                )}
             </View>
         </KeyboardAvoidingView>
     );
@@ -214,5 +260,15 @@ const styles = StyleSheet.create({
     linkText: {
         color: Colors.light.tint,
         fontSize: 16,
+    },
+    resendBtn: {
+        marginTop: 12,
+        alignItems: "center",
+    },
+
+    resendText: {
+        color: "#60a5fa", // light blue
+        fontSize: 14,
+        textDecorationLine: "underline",
     },
 });
