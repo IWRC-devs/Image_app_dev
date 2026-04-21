@@ -1,59 +1,66 @@
 import { API_BASE_URL } from "@/constants/Config";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    StyleSheet,
+    Alert,
 } from "react-native";
+import { Colors } from "../../../constants/Colors";
 
 export default function ForgotScreen() {
-  const [username, setUsername] = useState("");
+    const [username, setUsername] = useState("");
+    const router = useRouter();
 
-  const handleForgot = async () => {
-    if (!username.trim()) {
-      Alert.alert("Enter your email");
-      return;
-    }
+    const handleForgot = async () => {
+        if (!username.trim()) {
+            Alert.alert("Enter your email");
+            return;
+        }
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/forgot-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
-      });
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/forgot-password`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username }),
+            });
 
-      const data = await res.json();
+            const data = await res.json();
 
-      Alert.alert("Info", data.message);
-    } catch (err) {
-      Alert.alert("Error", "Something went wrong");
-    }
-  };
+            Alert.alert("Info", data.message);
+        } catch (err) {
+            Alert.alert("Error", "Something went wrong");
+        }
+    };
 
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Forgot Password</Text>
+    return (
+        <View style={styles.container}>
+            <Text style={styles.title}>Forgot Password</Text>
 
-      {/* Email Input */}
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your email"
-        placeholderTextColor="#888"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
+            {/* Email Input */}
+            <TextInput
+                style={styles.input}
+                placeholder="Enter your email"
+                placeholderTextColor="#888"
+                value={username}
+                onChangeText={setUsername}
+                autoCapitalize="none"
+                keyboardType="email-address"
+            />
 
-      {/* Button */}
-      <TouchableOpacity style={styles.button} onPress={handleForgot}>
-        <Text style={styles.buttonText}>Send Reset Link</Text>
-      </TouchableOpacity>
-    </View>
-  );
+            {/* Button */}
+            <TouchableOpacity style={styles.button} onPress={handleForgot}>
+                <Text style={styles.buttonText}>Send Reset Link</Text>
+            </TouchableOpacity>
+            {/* Back Button */}
+            <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <Text style={styles.backText}>← Back</Text>
+            </TouchableOpacity>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
@@ -70,7 +77,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         color: "#fff",
     },
-      button: {
+    button: {
         backgroundColor: "#4ade80", // green button
         paddingVertical: 16,
         borderRadius: 8,
@@ -91,5 +98,13 @@ const styles = StyleSheet.create({
         color: "#fff",
         backgroundColor: "#1f1f1f",
         fontSize: 16,          // optional: make text larger
+    },
+    backBtn: {
+        marginTop: 20,
+        alignItems: "center",
+    },
+    backText: {
+        color: Colors.light.tint,
+        fontSize: 16,
     },
 });

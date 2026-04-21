@@ -12,15 +12,23 @@ export interface User {
 
 interface UserContextType {
   user: User | null;
-  setUser: (user: User) => void;
+  setUser: (user: User | null) => void;
 }
 
-export const UserContext = createContext<UserContextType>({
+/*export const UserContext = createContext<UserContextType>({
   user: null,
   setUser: (_user: User | null) => {},
-});
+});*/
+export const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export const useUser = () => useContext(UserContext);
+/*export const useUser = () => useContext(UserContext);*/
+export const useUser = () => {
+  const context = useContext(UserContext);
+  if (!context) {
+    throw new Error("useUser must be used within UserProvider");
+  }
+  return context;
+};
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);

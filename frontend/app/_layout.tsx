@@ -43,27 +43,40 @@ export default function RootLayout() {
 
   return (
     <UserProvider>
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Stack>
-        <Stack.Screen
-          name="index"
-          options={{ headerShown: false, title: "IWRC Home" }}
-        />
-        <Stack.Screen
-          name="screens/auth/login"
-          options={{ headerShown: false, title: "Login" }}
-        />
-        <Stack.Screen
-          name="screens/auth/register"
-          options={{ headerShown: false, title: "Register" }}
-        />
-        <Stack.Screen
-          name="screens/imaging"
-          options={{ headerShown: false }}
-        />
-      </Stack>
-    </ThemeProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <Stack>
+          {/* Root */}
+          <Stack.Screen
+            name="index"
+            options={{ headerShown: false, title: "IWRC Home" }}
+          />
+          {/* Auth group (correct path!) */}
+          <Stack.Screen
+            name="screens/auth/login"
+            options={{ headerShown: false, title: "Login" }}
+          />
+          <Stack.Screen
+            name="screens/auth/register"
+            options={{ headerShown: false, title: "Register" }}
+          />
+          <Stack.Screen
+            name="screens/auth/forgot"
+            options={{ headerShown: false, title: "Forgot Password" }}
+          />
+          {/* Root-level screens */}
+          <Stack.Screen
+            name="reset"
+            options={{ headerShown: false }} />
+          <Stack.Screen
+            name="verify"
+            options={{ headerShown: false }} />
+          <Stack.Screen
+            name="screens/imaging"
+            options={{ headerShown: false }}
+          />
+        </Stack>
+      </ThemeProvider>
     </UserProvider>
   );
 }

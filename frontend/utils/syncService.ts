@@ -1,4 +1,4 @@
-import { getPendingBatches, markBatchSynced } from "./batchStore";
+import { getPendingBatches, markBatchAsSynced } from "./batchStore";
 import NetInfo from "@react-native-community/netinfo";
 import { Alert } from "react-native";
 import { API_BASE_URL } from "@/constants/Config";
@@ -43,7 +43,7 @@ export async function syncPendingBatches() {
       });
 
       if (response.ok) {
-        await markBatchSynced(batch.name);
+        await markBatchAsSynced(batch.name);
         console.log(`✅ Synced batch: ${batch.name}`);
       } else {
         console.error(`❌ Failed to sync batch: ${batch.name}`);
