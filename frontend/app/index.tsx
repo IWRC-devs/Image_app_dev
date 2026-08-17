@@ -10,32 +10,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   return (
-
     <ImageBackground
       source={require("../assets/images/plant-cover-01.jpg")}
       style={styles.background}
       resizeMode="cover"
     >
-      {/* Overlay */}
       <ImageBackground style={styles.overlay} />
 
-      {/* Content */}
       <ThemedText style={styles.title}>IWRC Imaging</ThemedText>
 
-      <TouchableOpacity style={styles.button} onPress={() => router.push("/screens/auth/login")}>
-        <ThemedText style={styles.buttonText}>Login</ThemedText>
+      <TouchableOpacity style={styles.button} onPress={() => router.replace("/screens/imaging") }>
+        <ThemedText style={styles.buttonText}>Continue</ThemedText>
       </TouchableOpacity>
-      {showRegister && (
-        <TouchableOpacity style={styles.button} onPress={() => router.push("/screens/auth/register")}>
-          <ThemedText style={styles.buttonText}>Register</ThemedText>
-        </TouchableOpacity>
-      )}
     </ImageBackground>
-
   );
 }
-
-const showRegister = true;
 
 const styles = StyleSheet.create({
   safeArea: {
