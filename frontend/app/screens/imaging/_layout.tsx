@@ -36,22 +36,10 @@ export default function ImagingLayout() {
           }}
         >
           <Tabs.Screen
-            name="index"
-            options={{
-              title: 'Affiliation',
-              tabBarIcon: ({ color }) => <Ionicons size={28} name="home" color={color} />,
-            }} />
-          <Tabs.Screen
             name="parameters"
             options={{
               title: 'Parameters',
               tabBarIcon: ({ color }) => <Ionicons size={28} name="options-outline" color={color} />
-            }} />
-          <Tabs.Screen
-            name="extra-metadata"
-            options={{
-              title: 'Metadata',
-              tabBarIcon: ({ color }) => <Ionicons size={28} name="document-text-outline" color={color} />
             }} />
           <Tabs.Screen
             name="image-option"

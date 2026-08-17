@@ -48,11 +48,6 @@ export default function ImageOptionScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <ThemedView style={[styles.titleContainer, { backgroundColor }]}>
-        <ThemedText type="title" style={[styles.title, { flexWrap: 'wrap' }]}>
-          Step 4: Select how you want to add images
-        </ThemedText>
-      </ThemedView>
       <View style={{ flex: 1, padding: 16 }}>
         <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
 

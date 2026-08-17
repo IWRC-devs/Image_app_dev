@@ -61,12 +61,6 @@ export default function ImageSelectionScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor }}>
-      <ThemedView style={[styles.titleContainer, { backgroundColor }]}>
-        <ThemedText type="title" style={styles.title}>
-          Step 5: Image Selection
-        </ThemedText>
-      </ThemedView>
-
       <View style={styles.content}>
         {/* Pick Images Button */}
         <Button mode="outlined" onPress={pickImages} style={styles.pickButton}>

@@ -59,12 +59,6 @@ export default function CaptureImageScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      <ThemedView style={[styles.titleContainer, { backgroundColor }]}>
-        <ThemedText type="title" style={styles.title}>
-          Step 5: Capture Images
-        </ThemedText>
-      </ThemedView>
-
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
         {/* Camera Icon */}
         <TouchableOpacity style={styles.cameraButton} onPress={handleCapture}>
