@@ -19,7 +19,7 @@ export default function HomeScreen() {
 
       <ThemedText style={styles.title}>IWRC Imaging</ThemedText>
 
-      <TouchableOpacity style={styles.button} onPress={() => router.replace("/screens/imaging")}>
+      <TouchableOpacity style={styles.button} onPress={() => router.replace("/screens/imaging") }>
         <ThemedText style={styles.buttonText}>Continue</ThemedText>
       </TouchableOpacity>
     </ImageBackground>
