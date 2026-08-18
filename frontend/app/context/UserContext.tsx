@@ -19,7 +19,10 @@ interface UserContextType {
   user: null,
   setUser: (_user: User | null) => {},
 });*/
-export const UserContext = createContext<UserContextType | undefined>(undefined);
+export const UserContext = createContext<UserContextType>({
+  user: null,
+  setUser: () => undefined,
+});
 
 /*export const useUser = () => useContext(UserContext);*/
 export const useUser = () => {

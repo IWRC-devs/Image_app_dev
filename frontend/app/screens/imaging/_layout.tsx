@@ -36,6 +36,24 @@ export default function ImagingLayout() {
           }}
         >
           <Tabs.Screen
+            name="index"
+            options={{
+              href: null,
+            }}
+          />
+          <Tabs.Screen
+            name="extra-metadata"
+            options={{
+              href: null,
+            }}
+          />
+          <Tabs.Screen
+            name="location"
+            options={{
+              title: 'Location',
+              tabBarIcon: ({ color }) => <Ionicons size={28} name="location-outline" color={color} />
+            }} />
+          <Tabs.Screen
             name="parameters"
             options={{
               title: 'Parameters',
@@ -77,9 +95,9 @@ export default function ImagingLayout() {
           <Tabs.Screen
             name="pending-uploads"
             options={{
-              title: 'Pending Uploads',
-              tabBarIcon: ({ color }) => <Ionicons size={28} name="cloud-upload" color={color} />,
-            }} />
+              href: null,
+            }}
+          />
         </Tabs>
       </BatchProvider>
     </UserProvider>

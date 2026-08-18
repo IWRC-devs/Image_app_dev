@@ -14,10 +14,12 @@ export default function ParametersScreen() {
   const router = useRouter();
   const { batchData, setBatchData } = useBatch();
 
-  const weedBackgroundOptions = ["Fallow", "Black/Gray Mat"];
+  const weedBackgroundOptions = ["Fallow", "Crop", "Pasture", "Other Weeds", "Black/Gray Mat"];
+  const weedSiteOptions = ["Field", "Pot"];
   const growthStageOptions = ["Vegetative", "Flowering", "Mature"];
   const soilColorOptions = ["Black", "Brown", "Grey", "Pale Bleached", "Red", "Yellow Brown", "Not Visible"];
   const [weedBackground, setWeedBackground] = useState<string | null>(null);
+  const [weedSite, setWeedSite] = useState<string | null>(null);
   const [growthStage, setGrowthStage] = useState<string | null>(null);
   const [soilColor, setSoilColor] = useState<string | null>(null);
   const [lighting, setLighting] = useState<{ id: number; name: string }[]>([]);
@@ -46,12 +48,11 @@ export default function ParametersScreen() {
     load();
   }, []);
 
-  const filteredOptions =
-    botanicalName.length === 0
-      ? botanicalOptions
-      : botanicalOptions.filter((item) =>
+  const filteredOptions = botanicalName.trim().length > 0
+    ? botanicalOptions.filter((item) =>
         item.name.toLowerCase().includes(botanicalName.toLowerCase())
-      );
+      )
+    : [];
 
   const selectBotanical = (name: string) => {
     setBotanicalName(name);
@@ -73,7 +74,7 @@ export default function ParametersScreen() {
   };
 
   const onContinue = async () => {
-    if (!weedBackground || !growthStage || !soilColor || !botanicalName || selectedLightingId === null || selectedLightingId === undefined) return;
+    if (!weedBackground || !weedSite || !growthStage || !soilColor || !botanicalName || selectedLightingId === null || selectedLightingId === undefined) return;
 
     await ensureBotanicalExists(botanicalName);
 
@@ -81,6 +82,7 @@ export default function ParametersScreen() {
       setBatchData({
         ...batchData,
         weedBackground,
+        weedSite,
         growthStage,
         soilColor,
         botanicalName,
@@ -131,17 +133,18 @@ export default function ParametersScreen() {
         <ScrollView
           contentContainerStyle={{ paddingBottom: 60, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}>
-          <ThemedText style={styles.label}>Botanical Name</ThemedText>
+          <ThemedText style={styles.sectionTitle}>Botanical name</ThemedText>
 
           <TextInput
             value={botanicalName}
             onChangeText={(text) => {
               setBotanicalName(text);
-              setShowDropdown(true);
+              setShowDropdown(text.trim().length > 0);
             }}
-            placeholder="Type or select botanical name"
+            placeholder="Type to select botanical name"
             style={styles.input}
-            onFocus={() => setShowDropdown(true)}
+            placeholderTextColor="#666"
+            onFocus={() => setShowDropdown(botanicalName.trim().length > 0)}
           />
 
           {showDropdown && filteredOptions.length > 0 && (
@@ -152,46 +155,52 @@ export default function ParametersScreen() {
                   style={styles.dropdownItem}
                   onPress={() => selectBotanical(item.name)}
                 >
-                  <ThemedText>{item.name}</ThemedText>
+                  <ThemedText style={styles.dropdownItemText}>{item.name}</ThemedText>
                 </TouchableOpacity>
               ))}
             </View>
           )}
 
           <View style={styles.container}>
-            <ThemedText style={[styles.label, { marginTop: 20 }]}>Background of target weed</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Weed site</ThemedText>
+            {renderList(weedSiteOptions, weedSite, setWeedSite)}
+
+            <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Background</ThemedText>
             {renderList(weedBackgroundOptions, weedBackground, setWeedBackground)}
 
-            <ThemedText style={[styles.label, { marginTop: 20 }]}>Growth Stage</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Growth stage</ThemedText>
             {renderList(growthStageOptions, growthStage, setGrowthStage)}
 
-            <ThemedText style={[styles.label, { marginTop: 20 }]}>Soil Color</ThemedText>
+            <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Soil color</ThemedText>
             {renderList(soilColorOptions, soilColor, setSoilColor)}
 
-            <ThemedText style={[styles.label, { marginTop: 20 }]}>Lighting</ThemedText>
-            {lighting.map((opt) => (
-              <TouchableOpacity
-                key={opt.id}
-                style={[styles.item, selectedLightingId === opt.id && styles.selectedItem]}
-                onPress={() => setSelectedLighting(opt.id)}
-              >
-                <ThemedText style={[styles.itemText, selectedLightingId === opt.id && styles.selectedText]}>
-                  {opt.name}
-                </ThemedText>
-                {selectedLightingId === opt.id && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={30}
-                    color="black"
-                    style={{ marginLeft: 8 }}
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
+            <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Lighting</ThemedText>
+            {lighting.map((opt) => {
+              const label = opt.name.charAt(0).toUpperCase() + opt.name.slice(1);
+              return (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={[styles.item, selectedLightingId === opt.id && styles.selectedItem]}
+                  onPress={() => setSelectedLighting(opt.id)}
+                >
+                  <ThemedText style={[styles.itemText, selectedLightingId === opt.id && styles.selectedText]}>
+                    {label}
+                  </ThemedText>
+                  {selectedLightingId === opt.id && (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={30}
+                      color="black"
+                      style={{ marginLeft: 8 }}
+                    />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </ScrollView>
 
-        {(weedBackground && growthStage && soilColor && botanicalName && selectedLightingId !== null && selectedLightingId !== undefined) && (
+        {(weedBackground && weedSite && growthStage && soilColor && botanicalName && selectedLightingId !== null && selectedLightingId !== undefined) && (
           <SafeAreaView
             edges={[]}
             style={{ paddingHorizontal: 0, paddingTop: 20, paddingBottom: 12 }}>
@@ -210,7 +219,13 @@ export default function ParametersScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 0, flexGrow: 1 },
-  label: { fontSize: 16, marginBottom: 5 },
+  sectionTitle: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  label: { fontSize: 16, marginBottom: 5, color: "#000" },
   item: {
     padding: 16,
     marginVertical: 8,
@@ -221,7 +236,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   selectedItem: { backgroundColor: "#607D8B" },
-  itemText: { fontSize: 18, color: "#333" },
+  itemText: { fontSize: 16, color: "#000" },
   selectedText: { color: "#fff", fontWeight: "bold" },
   continueButton: {
     backgroundColor: '#4CAF50',
@@ -232,12 +247,14 @@ const styles = StyleSheet.create({
   },
   continueButtonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
+    backgroundColor: "#fff",
+    color: "#000",
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
@@ -250,18 +267,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 5,
     maxHeight: 180,
+    zIndex: 20,
+    elevation: 20,
   },
   dropdownItem: {
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
+    backgroundColor: "#fff",
   },
-});
-
-  dropdownItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+  dropdownItemText: {
+    color: "#000",
+    fontSize: 16,
   },
 });

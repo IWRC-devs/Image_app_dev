@@ -10,8 +10,12 @@ export type BatchData = {
   id: string | null;
   name: string;
   affiliationId?: number;
+  locationCountry: string | null;
+  locationState: string | null;
+  locationCity: string | null;
   botanicalName: string | null;
   weedBackground: string | null;
+  weedSite?: string | null;
   growthStage: string | null;
   soilColor: string | null;
   lightingId?: number;
@@ -32,6 +36,11 @@ export const useBatch = () => {
   return context;
 };
 
+export const formatBatchName = (date = new Date()) => {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `batch_${date.getFullYear()}_${pad(date.getMonth() + 1)}_${pad(date.getDate())}_${pad(date.getHours())}_${pad(date.getMinutes())}_${pad(date.getSeconds())}`;
+};
+
 export const BatchProvider = ({ children }: { children: ReactNode }) => {
   const [batchData, setBatchData] = useState<BatchData | null>(null);
 
@@ -43,14 +52,17 @@ export const BatchProvider = ({ children }: { children: ReactNode }) => {
 };
 
 export const createNewBatch = (): BatchData => {
-  const timestamp = new Date().toISOString();
   return {
     synced: null,
     id: null,
-    name: `batch-${timestamp}`,
+    name: formatBatchName(),
     affiliationId: undefined,
+    locationCountry: null,
+    locationState: null,
+    locationCity: null,
     botanicalName: null,
     weedBackground: null,
+    weedSite: null,
     growthStage: null,
     soilColor: null,
     lightingId: undefined,
