@@ -1,8 +1,12 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StoredBatch } from '@/types';
 import { BatchData } from '@/app/context/BatchContext';
 
 const BATCHES_DIR = `${FileSystem.documentDirectory}batches`;
+const EXPORT_DIRECTORY_NAME = 'iwrc_imaging_batches';
+const EXPORT_DIRECTORY_URI_KEY = 'iwrc_imaging_export_directory_uri';
 const LIGHTING_OPTIONS = require('@/assets/data/lighting.json') as { id: number; name: string }[];
 
 async function ensureDirExists() {
@@ -91,6 +95,68 @@ function toStoredMetadata(batch: Partial<StoredBatch> & Record<string, any>) {
     images: imageEntries,
     saved_at: new Date().toISOString(),
   };
+}
+
+function getImageFileName(uri: string, index: number) {
+  const originalName = uri.split('/').pop()?.split('?')[0] ?? '';
+  const extension = originalName.includes('.') ? originalName.split('.').pop() : 'jpg';
+  return `image_${String(index + 1).padStart(3, '0')}.${extension}`;
+}
+
+async function getExportDirectoryUri() {
+  if (Platform.OS !== 'android') {
+    throw new Error('Exporting to the user Documents folder is currently supported on Android only.');
+  }
+
+  const savedUri = await AsyncStorage.getItem(EXPORT_DIRECTORY_URI_KEY);
+  if (savedUri) return savedUri;
+
+  const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+  if (!permission.granted) {
+    throw new Error('Documents folder permission was not granted.');
+  }
+
+  const exportRootUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(
+    permission.directoryUri,
+    EXPORT_DIRECTORY_NAME
+  );
+  await AsyncStorage.setItem(EXPORT_DIRECTORY_URI_KEY, exportRootUri);
+  return exportRootUri;
+}
+
+export async function exportBatchToDocuments(batch: StoredBatch) {
+  const exportRootUri = await getExportDirectoryUri();
+  const batchDirectoryName = (batch.id || `batch-${Date.now()}`).replace(/[\\/:*?"<>|]/g, '_');
+  const batchUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(
+    exportRootUri,
+    batchDirectoryName
+  );
+
+  const exportImages = batch.images.map((image, index) => ({
+    ...image,
+    name: getImageFileName(image.uri, index),
+  }));
+
+  for (const image of exportImages) {
+    const imageUri = await FileSystem.StorageAccessFramework.createFileAsync(
+      batchUri,
+      image.name,
+      'image/jpeg'
+    );
+    await FileSystem.copyAsync({ from: image.uri, to: imageUri });
+  }
+
+  const jsonUri = await FileSystem.StorageAccessFramework.createFileAsync(
+    batchUri,
+    `${batchDirectoryName}.json`,
+    'application/json'
+  );
+  await FileSystem.writeAsStringAsync(
+    jsonUri,
+    JSON.stringify(toStoredMetadata({ ...batch, images: exportImages }), null, 2)
+  );
+
+  return `${EXPORT_DIRECTORY_NAME}/${batchDirectoryName}`;
 }
 
 export async function saveBatch(batch: StoredBatch) {

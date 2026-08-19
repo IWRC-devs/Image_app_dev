@@ -14,8 +14,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { createNewBatch, formatBatchName, useBatch } from "../../context/BatchContext";
 import { Ionicons } from "@expo/vector-icons";
-import { saveBatch } from "@/utils/batchStore";
-import * as FileSystem from 'expo-file-system/legacy';
+import { exportBatchToDocuments, saveBatch } from "@/utils/batchStore";
 
 export default function ReviewSummaryScreen() {
   const router = useRouter();
@@ -77,11 +76,11 @@ export default function ReviewSummaryScreen() {
         synced: false,
         savedAt: new Date().toISOString(),
       };
-      const savedPath = await saveBatch(normalizedBatch as any);
-      const batchFolder = `${FileSystem.documentDirectory}batches`;
+      await saveBatch(normalizedBatch as any);
+      const exportPath = await exportBatchToDocuments(normalizedBatch as any);
       Alert.alert(
         "Saved",
-        `Batch saved successfully.\nFolder: ${batchFolder}\nFile: ${savedPath}`
+        `Batch saved successfully.\nDocuments/${exportPath}`
       );
       setBatchData(createNewBatch());
       router.back();
