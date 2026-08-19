@@ -1,12 +1,14 @@
 import { ThemedText } from "@/components/ThemedText";
 import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ScrollView, useColorScheme, View, StyleSheet, TouchableOpacity, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useBatch } from "../../context/BatchContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getBotanicalNamesFromFile } from "@/data/botanicalName";
 import { getLightingFromFile } from "@/data/lighting";
+
+const MAX_SUGGESTIONS = 15;
 
 export default function ParametersScreen() {
   const colorScheme = useColorScheme();
@@ -48,11 +50,25 @@ export default function ParametersScreen() {
     load();
   }, []);
 
-  const filteredOptions = botanicalName.trim().length > 0
-    ? botanicalOptions.filter((item) =>
-        item.name.toLowerCase().includes(botanicalName.toLowerCase())
-      )
-    : [];
+  const filteredOptions = useMemo<{ id: number; name: string }[]>(() => {
+    const query = botanicalName.trim().toLowerCase();
+
+    if (!query) return [];
+
+    return botanicalOptions
+      .filter((item) => item.name.toLowerCase().includes(query))
+      .sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+
+        const aStarts = aName.startsWith(query) ? 0 : 1;
+        const bStarts = bName.startsWith(query) ? 0 : 1;
+
+        if (aStarts !== bStarts) return aStarts - bStarts;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, MAX_SUGGESTIONS);
+  }, [botanicalName, botanicalOptions]);
 
   const selectBotanical = (name: string) => {
     setBotanicalName(name);

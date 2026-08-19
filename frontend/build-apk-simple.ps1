@@ -6,7 +6,7 @@ Write-Host "========================================="
 Write-Host "IWRC Imaging APK build"
 Write-Host "========================================="
 
-Write-Host "Step 1: Install dependencies"
+Write-Host "Step 1: Install dependencies if not already installed"
 npm install
 
 Write-Host "Step 2: Login to Expo/EAS"
