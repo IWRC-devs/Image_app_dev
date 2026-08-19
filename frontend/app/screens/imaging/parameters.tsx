@@ -18,7 +18,7 @@ export default function ParametersScreen() {
 
   const weedBackgroundOptions = ["Fallow", "Crop", "Pasture", "Other Weeds", "Black/Gray Mat"];
   const weedSiteOptions = ["Field", "Pot"];
-  const growthStageOptions = ["Vegetative", "Flowering", "Mature"];
+  const growthStageOptions = ["Seedling", "Vegetative", "Flowering", "Mature"];
   const soilColorOptions = ["Black", "Brown", "Grey", "Pale Bleached", "Red", "Yellow Brown", "Not Visible"];
   const [weedBackground, setWeedBackground] = useState<string | null>(null);
   const [weedSite, setWeedSite] = useState<string | null>(null);

@@ -21,6 +21,10 @@ export default function ImagingLayout() {
         <Tabs
           screenOptions={{
             tabBarActiveTintColor: '#4CAF50',
+            tabBarInactiveTintColor: 'rgba(255,255,255,0.5)',
+            tabBarLabelStyle: {
+              opacity: 0.75,
+            },
             headerTitle: 'IWRC Imaging',
             headerTitleAlign: 'center',
             headerShown: true,
@@ -28,7 +32,6 @@ export default function ImagingLayout() {
             tabBarBackground: TabBarBackground,
             tabBarStyle: Platform.select({
               ios: {
-                // Use a transparent background on iOS to show the blur effect
                 position: 'absolute',
               },
               default: {},
