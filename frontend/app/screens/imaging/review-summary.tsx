@@ -77,11 +77,15 @@ export default function ReviewSummaryScreen() {
         savedAt: new Date().toISOString(),
       };
       await saveBatch(normalizedBatch as any);
-      const exportPath = await exportBatchToDocuments(normalizedBatch as any);
-      Alert.alert(
-        "Saved",
-        `Batch saved successfully.\nDocuments/${exportPath}`
-      );
+      let exportMessage = "The batch was saved on this device.";
+      try {
+        const exportPath = await exportBatchToDocuments(normalizedBatch as any);
+        exportMessage = `Batch saved successfully.\n${exportPath}`;
+      } catch (exportError) {
+        console.warn("Batch export warning:", exportError);
+        exportMessage = "The batch was saved on this device, but could not be exported. Please choose a storage folder and try again.";
+      }
+      Alert.alert("Saved", exportMessage);
       setBatchData(createNewBatch());
       router.back();
     } catch (err) {

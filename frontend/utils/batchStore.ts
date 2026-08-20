@@ -109,17 +109,27 @@ async function getExportDirectoryUri() {
   }
 
   const savedUri = await AsyncStorage.getItem(EXPORT_DIRECTORY_URI_KEY);
-  if (savedUri) return savedUri;
+  if (savedUri) {
+    const savedDirectory = await FileSystem.getInfoAsync(savedUri);
+    if (savedDirectory.exists) return savedUri;
+    await AsyncStorage.removeItem(EXPORT_DIRECTORY_URI_KEY);
+  }
 
   const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
   if (!permission.granted) {
     throw new Error('Documents folder permission was not granted.');
   }
 
-  const exportRootUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(
-    permission.directoryUri,
-    EXPORT_DIRECTORY_NAME
-  );
+  let exportRootUri: string;
+  try {
+    exportRootUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(
+      permission.directoryUri,
+      EXPORT_DIRECTORY_NAME
+    );
+  } catch (error) {
+    await AsyncStorage.removeItem(EXPORT_DIRECTORY_URI_KEY);
+    throw error;
+  }
   await AsyncStorage.setItem(EXPORT_DIRECTORY_URI_KEY, exportRootUri);
   return exportRootUri;
 }
@@ -127,10 +137,15 @@ async function getExportDirectoryUri() {
 export async function exportBatchToDocuments(batch: StoredBatch) {
   const exportRootUri = await getExportDirectoryUri();
   const batchDirectoryName = (batch.id || `batch-${Date.now()}`).replace(/[\\/:*?"<>|]/g, '_');
-  const batchUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(
-    exportRootUri,
-    batchDirectoryName
-  );
+  let batchUri: string;
+  try {
+    batchUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(
+      exportRootUri,
+      batchDirectoryName
+    );
+  } catch {
+    throw new Error('A folder for this batch already exists. Choose a different batch name.');
+  }
 
   const exportImages = batch.images.map((image, index) => ({
     ...image,
