@@ -144,7 +144,7 @@ export default function ParametersScreen() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor }}>
       <View style={{ flex: 1, padding: 16 }}>
         <ScrollView
           contentContainerStyle={{ paddingBottom: 60, flexGrow: 1 }}
