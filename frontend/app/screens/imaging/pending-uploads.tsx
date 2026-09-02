@@ -1,133 +1,139 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { View, ScrollView, TouchableOpacity, StyleSheet, Alert } from "react-native";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { Ionicons } from "@expo/vector-icons";
-import { getSavedBatches, deleteBatch } from "@/utils/batchStore";
-import { API_BASE_URL } from "@/constants/Config";
-import { useFocusEffect } from "expo-router";
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-export default function PendingUploadsScreen() {
-  const [batches, setBatches] = useState<any[]>([]);
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+import { StoredBatch } from '@/types';
+import { deleteBatch, exportBatchToDocuments, getSavedBatches } from '@/utils/batchStore';
+
+export default function SavedBatchesScreen() {
+  const [batches, setBatches] = useState<StoredBatch[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const loadBatches = useCallback(async () => {
+    setLoading(true);
+    try {
+      setBatches(await getSavedBatches());
+    } catch (error) {
+      console.error('Unable to read saved batches:', error);
+      Alert.alert('Unable to load', 'The batches stored on this device could not be read.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetchPendingBatches();
-    }, [])
+      loadBatches();
+    }, [loadBatches])
   );
 
-  const fetchPendingBatches = async () => {
-    setLoading(true);
-    const saved = await getSavedBatches();
-    setBatches(saved.filter(b => !b.synced));
-    setLoading(false);
-  };
-
-  /*useEffect(() => {
-    fetchPendingBatches();
-  }, []);*/
-
-  const handleUpload = async (batch: any) => {
-    Alert.alert("Uploading", `Uploading batch: ${batch.name}`);
-
+  const handleExport = async (batch: StoredBatch) => {
     try {
-      const formData = new FormData();
-      formData.append("name", batch.name);
-      formData.append("affiliation_id", String(batch.affiliationId ?? ""));
-      formData.append("size_class", batch.weedBackground ?? "");
-      formData.append("flower_answer", batch.growthStage ?? "");
-      formData.append("crop_answer", batch.soilColor ?? "");
-      formData.append("ground_cover_percent_id", String(batch.lightingId ?? ""));
-
-      batch.images.forEach((img: any, idx: number) => {
-        formData.append("images", {
-          uri: img.uri,
-          name: `image-${idx}.jpg`,
-          type: "image/jpeg",
-        } as any);
-      });
-
-      const response = await fetch(`${API_BASE_URL}/api/upload-batch`, {
-        method: "POST",
-        body: formData,
-        headers: { Accept: "application/json" },
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        Alert.alert("Uploaded", `Batch ${batch.name} uploaded successfully.`);
-        await deleteBatch(batch.id);
-        fetchPendingBatches();
-      } else {
-        Alert.alert("Upload failed", result.error || "Unknown error");
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Upload failed", "Network or server error");
+      const exportPath = await exportBatchToDocuments(batch);
+      Alert.alert('Exported', `A local copy was created in ${exportPath}.`);
+    } catch (error) {
+      Alert.alert(
+        'Export not completed',
+        error instanceof Error ? error.message : 'Unable to export this batch.'
+      );
     }
   };
 
-  const handleDelete = async (batch: any) => {
-    Alert.alert("Confirm Delete", "Are you sure you want to delete this saved batch?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          await deleteBatch(batch.id);
-          fetchPendingBatches();
+  const handleDelete = (batch: StoredBatch) => {
+    Alert.alert(
+      'Delete local batch?',
+      `This permanently removes ${batch.images.length} images and the batch details from this device.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!batch.id) return;
+            await deleteBatch(batch.id);
+            await loadBatches();
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
-
-  if (loading) return <ThemedText>Loading saved batches...</ThemedText>;
-  if (batches.length === 0) return <ThemedText>No pending uploads.</ThemedText>;
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView>
-        <ThemedText style={styles.heading}>Pending Uploads</ThemedText>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ThemedText style={styles.heading}>Saved Batches</ThemedText>
+        <ThemedText style={styles.privacyNote}>
+          Stored only on this device. Nothing is uploaded to a server or cloud account.
+        </ThemedText>
 
-        {batches.map((batch) => (
-          <View key={batch.id} style={styles.batchCard}>
-            <View style={{ flex: 1 }}>
-              <ThemedText style={styles.batchName}>{batch.name}</ThemedText>
-              <ThemedText style={styles.batchDetails}>
-                {batch.images.length} images • Saved on {new Date(batch.savedAt).toLocaleString()}
-              </ThemedText>
-            </View>
-
-            <View style={styles.actions}>
-              <TouchableOpacity onPress={() => handleUpload(batch)} style={styles.iconButton}>
-                <Ionicons name="cloud-upload" size={22} color="#4CAF50" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDelete(batch)} style={styles.iconButton}>
-                <Ionicons name="trash" size={22} color="red" />
-              </TouchableOpacity>
-            </View>
+        {loading ? (
+          <ThemedText style={styles.emptyText}>Loading saved batches…</ThemedText>
+        ) : batches.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="folder-open-outline" size={42} color="#9aa0a6" />
+            <ThemedText style={styles.emptyText}>No batches saved on this device.</ThemedText>
           </View>
-        ))}
+        ) : (
+          batches.map((batch) => (
+            <View key={batch.id ?? batch.name} style={styles.batchCard}>
+              <View style={styles.batchInfo}>
+                <ThemedText style={styles.batchName}>{batch.name}</ThemedText>
+                <ThemedText style={styles.batchDetails}>
+                  {batch.images.length} images · {new Date(batch.savedAt).toLocaleString()}
+                </ThemedText>
+                <ThemedText style={styles.location}>
+                  {[batch.locationState, batch.locationCountry].filter(Boolean).join(', ')}
+                </ThemedText>
+              </View>
+
+              <View style={styles.actions}>
+                {Platform.OS === 'android' && (
+                  <TouchableOpacity
+                    accessibilityLabel={`Export ${batch.name} to Documents`}
+                    onPress={() => handleExport(batch)}
+                    style={styles.iconButton}
+                  >
+                    <Ionicons name="folder-outline" size={24} color="#4CAF50" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  accessibilityLabel={`Delete ${batch.name}`}
+                  onPress={() => handleDelete(batch)}
+                  style={styles.iconButton}
+                >
+                  <Ionicons name="trash-outline" size={24} color="#ff5a5f" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        )}
       </ScrollView>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  heading: { fontSize: 20, fontWeight: "bold", marginBottom: 16 },
+  container: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  heading: { fontSize: 24, fontWeight: '700', marginBottom: 6 },
+  privacyNote: { color: '#9aa0a6', fontSize: 14, lineHeight: 20, marginBottom: 20 },
+  emptyState: { alignItems: 'center', paddingVertical: 64, gap: 12 },
+  emptyText: { color: '#9aa0a6', textAlign: 'center' },
   batchCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.1)",
-    padding: 12,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    padding: 14,
+    borderRadius: 10,
     marginBottom: 12,
   },
-  batchName: { fontWeight: "bold", fontSize: 16 },
-  batchDetails: { color: "#aaa", fontSize: 12 },
-  actions: { flexDirection: "row", marginLeft: 10 },
-  iconButton: { marginHorizontal: 6 },
+  batchInfo: { flex: 1 },
+  batchName: { fontWeight: '700', fontSize: 16, marginBottom: 5 },
+  batchDetails: { color: '#aaa', fontSize: 13 },
+  location: { color: '#aaa', fontSize: 13, marginTop: 3 },
+  actions: { flexDirection: 'row', marginLeft: 8 },
+  iconButton: { padding: 10 },
 });

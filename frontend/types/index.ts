@@ -10,6 +10,7 @@ export interface StoredBatch {
   locationCountry: string | null;
   locationState: string | null;
   locationCity: string | null;
+  botanicalName: string | null;
   weedBackground: string | null;
   weedSite?: string | null;
   growthStage: string | null;

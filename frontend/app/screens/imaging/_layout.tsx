@@ -3,21 +3,13 @@ import React from 'react';
 import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { BatchProvider } from '@/app/context/BatchContext';
-import { UserProvider } from "@/app/context/UserContext";
 
 export default function ImagingLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <UserProvider>
-      <BatchProvider>
+    <BatchProvider>
         <Tabs
           screenOptions={{
             tabBarActiveTintColor: '#4CAF50',
@@ -71,8 +63,8 @@ export default function ImagingLayout() {
           <Tabs.Screen
             name="image-selection"
             options={{
-              title: 'Upload',
-              tabBarIcon: ({ color }) => <Ionicons size={28} name="cloud-upload-outline" color={color} />,
+              title: 'Select Images',
+              tabBarIcon: ({ color }) => <Ionicons size={28} name="images-outline" color={color} />,
               href: null, // This hides the tab from the tab bar
               /*tabBarStyle: {
                 display: 'none', // Hide the tab bar for this specific screen
@@ -91,8 +83,8 @@ export default function ImagingLayout() {
           <Tabs.Screen
             name="review-summary"
             options={{
-              title: 'Review & Upload',
-              tabBarIcon: ({ color }) => <Ionicons size={28} name="cloud" color={color} />,
+              title: 'Review & Save',
+              tabBarIcon: ({ color }) => <Ionicons size={28} name="save-outline" color={color} />,
               href: null,
             }} />
           <Tabs.Screen
@@ -102,7 +94,6 @@ export default function ImagingLayout() {
             }}
           />
         </Tabs>
-      </BatchProvider>
-    </UserProvider>
+    </BatchProvider>
   );
 }
