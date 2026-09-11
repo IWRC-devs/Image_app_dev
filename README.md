@@ -2,6 +2,12 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
+## Local-only data storage
+
+IWRC Imaging does not upload batches, images, account information, or metadata to a backend or cloud service. Each completed batch is saved in the app's private document directory on the device. On Android, users can also export a batch and its JSON metadata to a folder they select in local device storage.
+
+Deleting the app can remove its private saved batches. Export important Android batches to the device Documents folder before uninstalling.
+
 ## Get started
 
 1. Install dependencies

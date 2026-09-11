@@ -1,11 +1,9 @@
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Image, Alert, useColorScheme } from "react-native";
 import { Button } from "react-native-paper";
 import * as ImagePicker from 'expo-image-picker';
-import { ImageItem, useBatch } from "../../context/BatchContext";
+import { useBatch } from "../../context/BatchContext";
 import uuid from 'react-native-uuid';
 import { Ionicons } from "@expo/vector-icons";
 
@@ -41,12 +39,6 @@ export default function ImageSelectionScreen() {
     const updatedImages = selectedImages.filter(img => img.id !== id);
     //setSelectedImages(updatedImages);
     setBatchData({ ...batchData, images: updatedImages });
-  };
-
-  // Clear all images
-  const clearAll = () => {
-    //setSelectedImages([]);
-    setBatchData({ ...batchData, images: [] });
   };
 
   // Continue to next screen

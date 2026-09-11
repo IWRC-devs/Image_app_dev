@@ -14,7 +14,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { createNewBatch, formatBatchName, useBatch } from "../../context/BatchContext";
 import { Ionicons } from "@expo/vector-icons";
-import { exportBatchToDocuments, saveBatch } from "@/utils/batchStore";
+import { saveBatch } from "@/utils/batchStore";
 
 export default function ReviewSummaryScreen() {
   const router = useRouter();
@@ -63,7 +63,7 @@ export default function ReviewSummaryScreen() {
     return true;
   };
 
-  const handleSaveOffline = async () => {
+  const handleSaveLocally = async () => {
     if (!validateBatch()) return;
 
     try {
@@ -76,16 +76,11 @@ export default function ReviewSummaryScreen() {
         synced: false,
         savedAt: new Date().toISOString(),
       };
-      await saveBatch(normalizedBatch as any);
-      let exportMessage = "The batch was saved on this device.";
-      try {
-        const exportPath = await exportBatchToDocuments(normalizedBatch as any);
-        exportMessage = `Batch saved successfully.\n${exportPath}`;
-      } catch (exportError) {
-        console.warn("Batch export warning:", exportError);
-        exportMessage = "The batch was saved on this device, but could not be exported. Please choose a storage folder and try again.";
-      }
-      Alert.alert("Saved", exportMessage);
+      const savedBatch = await saveBatch(normalizedBatch as any);
+      Alert.alert(
+        "Saved locally",
+        `${savedBatch.images.length} images and the batch details are stored only on this device.`
+      );
       setBatchData(createNewBatch());
       router.back();
     } catch (err) {
@@ -164,10 +159,10 @@ export default function ReviewSummaryScreen() {
             <View style={{ marginTop: 16, marginBottom: 12 }}>
               <TouchableOpacity
                 style={styles.continueButton}
-                onPress={handleSaveOffline}
+                onPress={handleSaveLocally}
               >
                 <ThemedText style={styles.continueButtonText}>
-                  Save batch
+                  Save locally
                 </ThemedText>
               </TouchableOpacity>
             </View>

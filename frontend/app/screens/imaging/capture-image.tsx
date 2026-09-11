@@ -1,18 +1,13 @@
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
-import { SafeAreaView, ScrollView, useColorScheme, View, StyleSheet, TouchableOpacity, Image, Alert } from "react-native";
+import { useRouter } from "expo-router";
+import { SafeAreaView, ScrollView, View, StyleSheet, TouchableOpacity, Image, Alert } from "react-native";
 import { Button } from "react-native-paper";
 import uuid from 'react-native-uuid';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { ImageItem, useBatch } from "../../context/BatchContext";
-import { saveImagePermanently } from '@/utils/fileUtils';
 
 export default function CaptureImageScreen() {
-  const colorScheme = useColorScheme();
-  const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
   const { batchData, setBatchData } = useBatch();
   //const [capturedImages, setCapturedImages] = useState<ImageItem[]>(batchData?.images ?? []); //Remove local state and use context directly
   const capturedImages = batchData?.images ?? [];

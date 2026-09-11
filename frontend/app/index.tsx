@@ -1,12 +1,7 @@
-import { Image } from 'expo-image';
 import { ImageBackground, Platform, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
   return (
@@ -20,7 +15,11 @@ export default function HomeScreen() {
       <ThemedText style={styles.title}>IWRC Imaging</ThemedText>
 
       <TouchableOpacity style={styles.button} onPress={() => router.replace("/screens/imaging/location")}>
-        <ThemedText style={styles.buttonText}>Continue</ThemedText>
+        <ThemedText style={styles.buttonText}>New Batch</ThemedText>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.secondaryButton} onPress={() => router.push("/screens/imaging/pending-uploads")}>
+        <ThemedText style={styles.buttonText}>Saved Batches</ThemedText>
       </TouchableOpacity>
     </ImageBackground>
   );
@@ -54,6 +53,17 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#28a745',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginVertical: 8,
+    width: '70%',
+    alignItems: 'center',
+  },
+  secondaryButton: {
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderColor: '#fff',
+    borderWidth: 1,
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 8,

@@ -1,24 +1,19 @@
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ScrollView, useColorScheme, View, StyleSheet, TouchableOpacity } from "react-native";
+import { ScrollView, View, StyleSheet, TouchableOpacity } from "react-native";
 import { useBatch } from "../../context/BatchContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ImageOptionScreen() {
-  const colorScheme = useColorScheme();
-  const backgroundColor = colorScheme === 'dark' ? '#1D3D47' : '#A1CEDC';
   const router = useRouter();
   const { batchData, setBatchData } = useBatch();
+  const [selectedOption, setSelectedOption] = useState<"manual" | "capture" | null>(
+    batchData?.selectedOption ?? null
+  );
 
   if (!batchData) return <ThemedText>No batch data available</ThemedText>;
-
-  // Restrict state to match BatchData.selectedOption type
-  const [selectedOption, setSelectedOption] = useState<"manual" | "capture" | null>(
-    batchData.selectedOption ?? null
-  );
 
   // Options for user to select
   const options: { key: 'manual' | 'capture'; label: string }[] = [
