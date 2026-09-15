@@ -165,7 +165,15 @@ async function saveBatchToDeviceFolder(batch: StoredBatch): Promise<StoredBatch>
       fileName,
       imageMimeType(fileName)
     );
-    await FileSystem.copyAsync({ from: image.uri, to: imageUri });
+    // copyAsync's Android implementation does not reliably support a SAF
+    // content:// destination (it tries to mkdir the raw URI as a path), so
+    // the image bytes are round-tripped through base64 instead.
+    const base64Image = await FileSystem.readAsStringAsync(image.uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    await FileSystem.writeAsStringAsync(imageUri, base64Image, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
     permanentImages.push({ id: image.id, uri: imageUri });
   }
 
