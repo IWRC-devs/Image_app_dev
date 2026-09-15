@@ -1,0 +1,144 @@
+INFO         | Android emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)
+INFO         | Graphics backend: gfxstream
+INFO         | Found systemPath C:/Users/navjot.singh/AppData/Local/Android/Sdk\system-images\android-37.2-beta3\google_apis_playstore_ps16k\x86_64\
+INFO         | Guest usage of host flag 'VulkanVirtualQueue' will be ignored.
+INFO         | Increasing RAM size to 4096MB
+INFO         | IPv4 server found: 128.194.254.1
+INFO         | Ignore IPv6 address: 9811:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: 9811:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: 9811:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: c017:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: c017:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: c017:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: d81d:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: d81d:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: d81d:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: f023:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: f023:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: f023:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: 102a:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: 102a:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: 102a:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: c830:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: c830:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: c830:4300:c901:0:a008:4300:c901:0
+INFO         | Guest GLES Driver: Auto (ext controls)
+INFO         | emuglConfig_get_vulkan_hardware_gpu_support_info: Found physical GPU 'NVIDIA GeForce RTX 3060 Ti', type: VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, apiVersion: 1.3.289, driverVersion: 566.24
+
+INFO         | emuglConfig_get_vulkan_hardware_gpu_support_info: Found physical GPU 'Intel(R) UHD Graphics 770', type: VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU, apiVersion: 1.3.293, driverVersion: 0.405.1982
+
+INFO         | emuglConfig_init: vulkan_mode_selected:host gles_mode_selected:host
+INFO         | Checking system compatibility:
+INFO         |   Checking: hasCompatibleHypervisor
+INFO         |      Ok: Hypervisor compatibility to run avd: `Pixel_10_Pro` are met
+INFO         |   Checking: hasSufficientSystem
+INFO         |      Ok: System requirements to run avd: `Pixel_10_Pro` are met
+INFO         |   Checking: hasSufficientHwGpu
+INFO         |      Ok: Hardware GPU requirements to run avd: `Pixel_10_Pro` are passed
+INFO         |   Checking: hasSufficientDiskSpace
+INFO         |      Ok: Disk space requirements to run avd: `Pixel_10_Pro` are met
+INFO         | Critical: Failed to load opengl32sw (The specified module could not be found.) (:0, )
+INFO         | Warning: Software OpenGL failed. Falling back to system OpenGL. (:0, )
+INFO         | Storing crashdata in: C:\Users\NAVJOT~1.SIN\AppData\Local\Temp\\AndroidEmulator\emu-crash-37.1.11.db, detection is enabled for process: 24168
+INFO         | Initializing gfxstream backend
+INFO         | startOpenglesRendererImpl: gpu info
+INFO         | GPU #1
+  Make: 10de
+  Model: NVIDIA GeForce RTX 3060 Ti
+  Device ID: 2489
+
+INFO         | Vulkan 1.4 is not supported for the guest and won't be enabled
+INFO         | Disabling implicit Vulkan layers to avoid compatibility issues. Set VK_LOADER_LAYERS_DISABLE manually to disable this behavior.
+INFO         | SharedLibrary::open for [C:\Users\navjot.singh\AppData\Local\Android\Sdk\emulator\qemu\windows-x86_64\lib64\vulkan\vulkan-1.dll]
+INFO         | SharedLibrary::open for [C:\Users\navjot.singh\AppData\Local\Android\Sdk\emulator\lib64\vulkan\vulkan-1.dll]
+INFO         | Added library: C:\Users\navjot.singh\AppData\Local\Android\Sdk\emulator\lib64\vulkan\vulkan-1.dll
+INFO         | Selecting Vulkan device: NVIDIA GeForce RTX 3060 Ti, Version: 1.3.289
+INFO         | Using Vulkan externalMemoryMode: OpaqueWin32 for VkEmulation
+INFO         | Initializing VkEmulation features:
+INFO         |     glInteropSupported: true
+INFO         |     useDeferredCommands: true
+INFO         |     createResourceWithRequirements: true
+INFO         |     useVulkanComposition: false
+INFO         |     useVulkanNativeSwapchain: false
+INFO         |     enable guestRenderDoc: false
+INFO         |     ASTC LDR emulation mode: Gpu
+INFO         |     enable ETC2 emulation: true
+INFO         |     enable Ycbcr emulation: false
+INFO         |     guestVulkanOnly: false
+INFO         |     useDedicatedAllocations: false
+INFO         |     guestVulkanMaxApiVersion: 1.3.0
+INFO         |     enableProtectedMemoryEmulation: false
+INFO         | Graphics Adapter Vendor Google (NVIDIA Corporation)
+INFO         | Graphics Adapter Android Emulator OpenGL ES Translator (NVIDIA GeForce RTX 3060 Ti/PCIe/SSE2)
+INFO         | Graphics API Version OpenGL ES 3.0 (4.5.0 NVIDIA 566.24)
+INFO         | Graphics API Extensions GL_OES_EGL_sync GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_depth24 GL_OES_depth32 GL_OES_element_index_uint GL_OES_texture_float GL_OES_texture_float_linear GL_OES_compressed_paletted_texture GL_OES_compressed_ETC1_RGB8_texture GL_OES_depth_texture GL_OES_texture_half_float GL_OES_texture_half_float_linear GL_OES_packed_depth_stencil GL_OES_vertex_half_float GL_OES_texture_npot GL_OES_rgb8_rgba8 GL_OVR_multiview2 GL_EXT_multiview_texture_multisample GL_EXT_color_buffer_float GL_EXT_color_buffer_half_float GL_EXT_texture_format_BGRA8888 GL_APPLE_texture_format_BGRA8888 GL_EXT_texture_buffer 
+INFO         | Graphics Device Extensions N/A
+INFO         | Disabling sparse binding feature support
+INFO         | Sending adb public key [QAAAAD9uhepBfiT5IlKahCaHKu1x9cfOd0+O7fAFKKaXxj46yhgga/T+hhYInH6H1QlGvdDi7bmISaHi6elcofLM7dd4J+DrpiDMzsXnMFKRWPzVm6DrN7LOnklbVFY+hlmFscOsAuClG9y9tYJeCYUXpJtRTrN6TVm9sAVe1YWjCwOy7Xt7RgMUlNP2n6njofIrNsb+JooCYCf0IgnjzRXAZ5uW39Wo/gDfwd46FY8aDFFirWJq49xJHOMIo4LgD7W/JHeJliG0dRffmDc5TJit1VIz4tsGc3Z8407MNYFlA4qiJojwdfg8FE5mjY/UJpTqpIL0vQs7aPdydIeLwuMYSayAsiC6ywo7IfNMNp7qJyfOYP4MCvCWJn24J0w3mt4SzNiZB8G1zSqfB53NRaXTA3DRQIkNCUUELGpkBEwnkbKhFgSpU7zC4rLYl8idKb9TnFSnW+kTXI8Zor7Nw+2U4TMJ78Ew/vCj/+29fFuDn3ZX6hNG9QHC6a0RLlocr3rL4gz1vRR5+nxzY0JN4//O6DrdjwtqtOHLGp/306awkgfxd1q8uJEbBX6L9vQ9Rq0q6ahRi1WnnZVZkafUBPO24U9QOXTgBS8KIZQBO6+LmnzwIiO9WxGN3mgfvfsirVnO4KJuIBgRoiBEzi3I9DHDQS4DCj48ecFiipOAWCfv1/P0WOUMLgEAAQA= @unknown]
+INFO         | Userspace boot properties:
+INFO         |   androidboot.boot_devices=pci0000:00/0000:00:03.0 pci0000:00/0000:00:06.0
+INFO         |   androidboot.dalvik.vm.heapsize=576m
+INFO         |   androidboot.debug.hwui.renderer=skiagl
+INFO         |   androidboot.debug.sf.nobootanimation=1
+INFO         |   androidboot.hardware=ranchu
+INFO         |   androidboot.hardware.gltransport=pipe
+INFO         |   androidboot.hardware.vulkan=ranchu
+INFO         |   androidboot.logcat=*:V
+INFO         |   androidboot.opengles.version=196609
+INFO         |   androidboot.qemu=1
+INFO         |   androidboot.qemu.adb.pubkey=QAAAAD9uhepBfiT5IlKahCaHKu1x9cfOd0+O7fAFKKaXxj46yhgga/T+hhYInH6H1QlGvdDi7bmISaHi6elcofLM7dd4J+DrpiDMzsXnMFKRWPzVm6DrN7LOnklbVFY+hlmFscOsAuClG9y9tYJeCYUXpJtRTrN6TVm9sAVe1YWjCwOy7Xt7RgMUlNP2n6njofIrNsb+JooCYCf0IgnjzRXAZ5uW39Wo/gDfwd46FY8aDFFirWJq49xJHOMIo4LgD7W/JHeJliG0dRffmDc5TJit1VIz4tsGc3Z8407MNYFlA4qiJojwdfg8FE5mjY/UJpTqpIL0vQs7aPdydIeLwuMYSayAsiC6ywo7IfNMNp7qJyfOYP4MCvCWJn24J0w3mt4SzNiZB8G1zSqfB53NRaXTA3DRQIkNCUUELGpkBEwnkbKhFgSpU7zC4rLYl8idKb9TnFSnW+kTXI8Zor7Nw+2U4TMJ78Ew/vCj/+29fFuDn3ZX6hNG9QHC6a0RLlocr3rL4gz1vRR5+nxzY0JN4//O6DrdjwtqtOHLGp/306awkgfxd1q8uJEbBX6L9vQ9Rq0q6ahRi1WnnZVZkafUBPO24U9QOXTgBS8KIZQBO6+LmnzwIiO9WxGN3mgfvfsirVnO4KJuIBgRoiBEzi3I9DHDQS4DCj48ecFiipOAWCfv1/P0WOUMLgEAAQA= @unknown
+INFO         |   androidboot.qemu.avd_name=Pixel_10_Pro
+INFO         |   androidboot.qemu.camera_hq_edge_processing=0
+INFO         |   androidboot.qemu.camera_protocol_ver=1
+INFO         |   androidboot.qemu.cpuvulkan.version=4210688
+INFO         |   androidboot.qemu.gltransport.drawFlushInterval=800
+INFO         |   androidboot.qemu.gltransport.name=pipe
+INFO         |   androidboot.qemu.hwcodec.avcdec=2
+INFO         |   androidboot.qemu.hwcodec.hevcdec=2
+INFO         |   androidboot.qemu.hwcodec.vpxdec=2
+INFO         |   androidboot.qemu.settings.system.screen_off_timeout=2147483647
+INFO         |   androidboot.qemu.skin=pixel_10_pro
+INFO         |   androidboot.qemu.virtiowifi=1
+INFO         |   androidboot.qemu.vsync=60
+INFO         |   androidboot.serialno=EMULATOR37X1X11X0
+INFO         |   androidboot.vbmeta.digest=f424461a0a397fda72fd179bc94e871022314ef1502d4ea1133175a87b4746ed
+INFO         |   androidboot.vbmeta.hash_alg=sha256
+INFO         |   androidboot.vbmeta.size=6720
+INFO         |   androidboot.veritymode=enforcing
+WHPX on Windows 10.0.26200 detected.
+Windows Hypervisor Platform accelerator is operational
+netsimd I 09-15 16:20:35.627 external/netsim+/rust/daemon/src\rust_main.rs:93 - netsim artifacts path: "C:\\Users\\NAVJOT~1.SIN\\AppData\\Local\\Temp\\netsimd"
+netsimd I 09-15 16:20:35.627 external/netsim+/rust/daemon/src\rust_main.rs:96 - NetsimdArgs {
+    fd_startup_str: None,
+    no_cli_ui: true,
+    no_web_ui: true,
+    pcap: false,
+    disable_address_reuse: false,
+    hci_port: None,
+    connector_instance: None,
+    instance: None,
+    logtostderr: false,
+    dev: false,
+    forward_host_mdns: false,
+    vsock: None,
+    config: None,
+    host_dns: Some(
+        "128.194.254.1",
+    ),
+    http_proxy: None,
+    wifi_tap: None,
+    wifi: None,
+    test_beacons: false,
+    no_test_beacons: false,
+    no_shutdown: false,
+    verbose: false,
+    version: false,
+    debug: DebugArgs {
+        debug_no_traffic: false,
+        debug_no_network: false,
+        debug_no_wmedium: false,
+        debug_no_mdns_wmedium: false,
+        debug_no_guest_to_host_mdns: false,
+    },
+    rssi: None,
+}
