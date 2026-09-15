@@ -127,6 +127,16 @@ android {
             useLegacyPackaging enableLegacyPackaging.toBoolean()
         }
     }
+    // The default .cxx intermediate directory lives deep under the project path,
+    // which pushes generated object file paths past Windows' 260-character limit
+    // for release builds (RelWithDebInfo). Relocate it to a short path instead.
+    if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+        externalNativeBuild {
+            cmake {
+                buildStagingDirectory "C:/rncxx/iwrc-imaging"
+            }
+        }
+    }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
     }

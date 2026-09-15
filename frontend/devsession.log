@@ -1,0 +1,279 @@
++ SDK=/c/Users/navjot.singh/AppData/Local/Android/Sdk
++ export ANDROID_HOME=/c/Users/navjot.singh/AppData/Local/Android/Sdk
++ ANDROID_HOME=/c/Users/navjot.singh/AppData/Local/Android/Sdk
++ export ANDROID_SDK_ROOT=/c/Users/navjot.singh/AppData/Local/Android/Sdk
++ ANDROID_SDK_ROOT=/c/Users/navjot.singh/AppData/Local/Android/Sdk
++ export 'PATH=/c/Users/navjot.singh/AppData/Local/Android/Sdk/platform-tools:/c/Users/navjot.singh/AppData/Local/Android/Sdk/emulator:/c/Users/navjot.singh/bin:/mingw64/bin:/usr/local/bin:/usr/bin:/bin:/mingw64/bin:/usr/bin:/c/Users/navjot.singh/bin:/c/Program Files/Microsoft/jdk-17.0.20.8-hotspot/bin:/c/WINDOWS/system32:/c/WINDOWS:/c/WINDOWS/System32/Wbem:/c/WINDOWS/System32/WindowsPowerShell/v1.0:/c/WINDOWS/System32/OpenSSH:/c/Program Files/dotnet:/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/c/Program Files/GitHub CLI:/c/Program Files/Docker/Docker/resources/bin:/c/Program Files/nodejs:/c/Users/navjot.singh/AppData/Local/Programs/Python/Launcher:/c/Users/navjot.singh/AppData/Local/Microsoft/WindowsApps:/c/Users/navjot.singh/AppData/Local/Programs/Microsoft VS Code/bin:/c/Users/navjot.singh/AppData/Local/Programs/Python/Python312:/c/Users/navjot.singh/AppData/Local/Programs/Python/Python312/Scripts:/cmd:/c/Users/navjot.singh/AppData/Roaming/npm:/c/Users/navjot.singh/AppData/Local/Programs/Ollama:/c/Users/navjot.singh/AppData/Local/Microsoft/WinGet/Packages/Casey.Just_Microsoft.Winget.Source_8wekyb3d8bbwe:/usr/bin/vendor_perl:/usr/bin/core_perl'
++ PATH='/c/Users/navjot.singh/AppData/Local/Android/Sdk/platform-tools:/c/Users/navjot.singh/AppData/Local/Android/Sdk/emulator:/c/Users/navjot.singh/bin:/mingw64/bin:/usr/local/bin:/usr/bin:/bin:/mingw64/bin:/usr/bin:/c/Users/navjot.singh/bin:/c/Program Files/Microsoft/jdk-17.0.20.8-hotspot/bin:/c/WINDOWS/system32:/c/WINDOWS:/c/WINDOWS/System32/Wbem:/c/WINDOWS/System32/WindowsPowerShell/v1.0:/c/WINDOWS/System32/OpenSSH:/c/Program Files/dotnet:/c/Program Files (x86)/NVIDIA Corporation/PhysX/Common:/c/Program Files/GitHub CLI:/c/Program Files/Docker/Docker/resources/bin:/c/Program Files/nodejs:/c/Users/navjot.singh/AppData/Local/Programs/Python/Launcher:/c/Users/navjot.singh/AppData/Local/Microsoft/WindowsApps:/c/Users/navjot.singh/AppData/Local/Programs/Microsoft VS Code/bin:/c/Users/navjot.singh/AppData/Local/Programs/Python/Python312:/c/Users/navjot.singh/AppData/Local/Programs/Python/Python312/Scripts:/cmd:/c/Users/navjot.singh/AppData/Roaming/npm:/c/Users/navjot.singh/AppData/Local/Programs/Ollama:/c/Users/navjot.singh/AppData/Local/Microsoft/WinGet/Packages/Casey.Just_Microsoft.Winget.Source_8wekyb3d8bbwe:/usr/bin/vendor_perl:/usr/bin/core_perl'
++ cd /c/Users/navjot.singh/Documents/Image_app_dev/frontend
++ ADB=/c/Users/navjot.singh/AppData/Local/Android/Sdk/platform-tools/adb.exe
++ EMU_PID=1157
++ /c/Users/navjot.singh/AppData/Local/Android/Sdk/emulator/emulator.exe -avd Pixel_10_Pro -no-snapshot-save -no-boot-anim
++ /c/Users/navjot.singh/AppData/Local/Android/Sdk/platform-tools/adb.exe devices
++ grep -q emulator-5554
++ sleep 2
++ /c/Users/navjot.singh/AppData/Local/Android/Sdk/platform-tools/adb.exe devices
++ grep -q emulator-5554
+++ /c/Users/navjot.singh/AppData/Local/Android/Sdk/platform-tools/adb.exe shell getprop sys.boot_completed
+++ tr -d '\r'
++ '[' '' = 1 ']'
++ sleep 3
+++ /c/Users/navjot.singh/AppData/Local/Android/Sdk/platform-tools/adb.exe shell getprop sys.boot_completed
+++ tr -d '\r'
++ '[' '' = 1 ']'
++ sleep 3
+++ /c/Users/navjot.singh/AppData/Local/Android/Sdk/platform-tools/adb.exe shell getprop sys.boot_completed
+++ tr -d '\r'
++ '[' 1 = 1 ']'
++ echo EMULATOR_BOOTED
+EMULATOR_BOOTED
++ METRO_PID=1187
++ npx expo start --dev-client
+++ seq 1 60
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ for i in $(seq 1 60)
++ grep -q 'Metro waiting on' metro.log
++ grep -q EMFILE metro.log
++ sleep 2
++ /c/Users/navjot.singh/AppData/Local/Android/Sdk/platform-tools/adb.exe reverse tcp:8081 tcp:8081
+adb.exe: no devices/emulators found
++ /c/Users/navjot.singh/AppData/Local/Android/Sdk/platform-tools/adb.exe shell am start -n com.iwrc.devs.iwrcImaging/.MainActivity
+adb.exe: no devices/emulators found
++ echo APP_LAUNCH_TRIGGERED
+APP_LAUNCH_TRIGGERED
++ wait 1157 1187

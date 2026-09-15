@@ -4,24 +4,24 @@ INFO         | Found systemPath C:/Users/navjot.singh/AppData/Local/Android/Sdk\
 INFO         | Guest usage of host flag 'VulkanVirtualQueue' will be ignored.
 INFO         | Increasing RAM size to 4096MB
 INFO         | IPv4 server found: 128.194.254.1
-INFO         | Ignore IPv6 address: 9811:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: 9811:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: 9811:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: c017:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: c017:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: c017:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: d81d:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: d81d:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: d81d:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: f023:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: f023:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: f023:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: 102a:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: 102a:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: 102a:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: c830:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: c830:4300:c901:0:a008:4300:c901:0
-INFO         | Ignore IPv6 address: c830:4300:c901:0:a008:4300:c901:0
+INFO         | Ignore IPv6 address: 7866:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: 7866:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: 7866:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: a06c:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: a06c:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: a06c:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: b872:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: b872:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: b872:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: d078:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: d078:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: d078:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: f07e:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: f07e:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: f07e:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: a885:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: a885:c8ec:9e01:0:805d:c8ec:9e01:0
+INFO         | Ignore IPv6 address: a885:c8ec:9e01:0:805d:c8ec:9e01:0
 INFO         | Guest GLES Driver: Auto (ext controls)
 INFO         | emuglConfig_get_vulkan_hardware_gpu_support_info: Found physical GPU 'NVIDIA GeForce RTX 3060 Ti', type: VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, apiVersion: 1.3.289, driverVersion: 566.24
 
@@ -39,7 +39,7 @@ INFO         |   Checking: hasSufficientDiskSpace
 INFO         |      Ok: Disk space requirements to run avd: `Pixel_10_Pro` are met
 INFO         | Critical: Failed to load opengl32sw (The specified module could not be found.) (:0, )
 INFO         | Warning: Software OpenGL failed. Falling back to system OpenGL. (:0, )
-INFO         | Storing crashdata in: C:\Users\NAVJOT~1.SIN\AppData\Local\Temp\\AndroidEmulator\emu-crash-37.1.11.db, detection is enabled for process: 24168
+INFO         | Storing crashdata in: C:\Users\NAVJOT~1.SIN\AppData\Local\Temp\\AndroidEmulator\emu-crash-37.1.11.db, detection is enabled for process: 73392
 INFO         | Initializing gfxstream backend
 INFO         | startOpenglesRendererImpl: gpu info
 INFO         | GPU #1
@@ -107,8 +107,8 @@ INFO         |   androidboot.vbmeta.size=6720
 INFO         |   androidboot.veritymode=enforcing
 WHPX on Windows 10.0.26200 detected.
 Windows Hypervisor Platform accelerator is operational
-netsimd I 09-15 16:20:35.627 external/netsim+/rust/daemon/src\rust_main.rs:93 - netsim artifacts path: "C:\\Users\\NAVJOT~1.SIN\\AppData\\Local\\Temp\\netsimd"
-netsimd I 09-15 16:20:35.627 external/netsim+/rust/daemon/src\rust_main.rs:96 - NetsimdArgs {
+netsimd I 09-15 19:05:47.601 external/netsim+/rust/daemon/src\rust_main.rs:93 - netsim artifacts path: "C:\\Users\\NAVJOT~1.SIN\\AppData\\Local\\Temp\\netsimd"
+netsimd I 09-15 19:05:47.601 external/netsim+/rust/daemon/src\rust_main.rs:96 - NetsimdArgs {
     fd_startup_str: None,
     no_cli_ui: true,
     no_web_ui: true,
@@ -142,3 +142,43 @@ netsimd I 09-15 16:20:35.627 external/netsim+/rust/daemon/src\rust_main.rs:96 - 
     },
     rssi: None,
 }
+INFO         | Monitoring duration of emulator setup.
+WARNING      | The emulator now requires a signed jwt token for gRPC access! Use the -grpc flag if you really want an open unprotected grpc port
+INFO         | Using security allow list from: C:\Users\navjot.singh\AppData\Local\Android\Sdk\emulator\lib\emulator_access.json
+INFO         | The active JSON Web Key Sets can be found here: C:\Users\navjot.singh\AppData\Local\Temp\avd\running\73392\jwks\7133f1f4-78f8-4e74-ac40-00d0f2dff231\active.jwk
+INFO         | Scanning C:\Users\navjot.singh\AppData\Local\Temp\avd\running\73392\jwks\7133f1f4-78f8-4e74-ac40-00d0f2dff231 for jwk keys.
+INFO         | Started GRPC server at 127.0.0.1:8554, security: Local, auth: +token
+INFO         | Advertising in: C:\Users\navjot.singh\AppData\Local\Temp\avd\running\pid_73392.ini
+INFO         | Successfully initialized netsim WiFi
+INFO         | Activated packet streamer for uwb emulation
+INFO         | Activated packet streamer for bluetooth emulation
+INFO         | Setting display: 0 configuration to: 1280x2856, dpi: 480x480 
+INFO         | setDisplayActiveConfig: id:0, 1280x2856
+INFO         | Checking system compatibility:
+INFO         |   Checking: hasCompatibleHypervisor
+INFO         |      Ok: Hypervisor compatibility to run avd: `Pixel_10_Pro` are met
+INFO         |   Checking: hasSufficientSystem
+INFO         |      Ok: System requirements to run avd: `Pixel_10_Pro` are met
+INFO         |   Checking: hasSufficientHwGpu
+INFO         |      Ok: Hardware GPU requirements to run avd: `Pixel_10_Pro` are passed
+INFO         |   Checking: hasSufficientDiskSpace
+INFO         |      Ok: Disk space requirements to run avd: `Pixel_10_Pro` are met
+WARNING      | getEnvironmentConfig: No environment config is provided
+INFO         | getEnvironmentConfig: Using default virtual scene mode for the environment.
+INFO         | getEnvironmentConfig: Using default configuration for mode mesh3d for the environment.
+INFO         | Initializing a scene with mode: mesh3d, argument: Toren1BD.obj
+INFO         | Loading snapshot 'default_boot'...
+INFO         | Warning: QMetaObject::connectSlotsByName: No matching signal for on_rgbcSensorValueWidget_valueChanged() (:0, )
+INFO         | Warning: QMetaObject::connectSlotsByName: No matching signal for on_posture_valueChanged(int) (:0, )
+INFO         | TouchpadHolder: registering via hw_xr_led agent for instance=0000019E8C6E1460
+INFO         | Warning: QObject::connect: Cannot queue arguments of type 'std::vector<android::emulation::control::SnapshotInfo>'
+(Make sure 'std::vector<android::emulation::control::SnapshotInfo>' is registered using qRegisterMetaType().) (:0, )
+INFO         | AVD supportsNativeGLES=1, supportsGuestAngle=1
+INFO         | Guest Angle is still unstable for API > 35.
+INFO         | Created extended window in 197.21ms
+INFO         | Successfully loaded snapshot 'default_boot' using 1046 ms
+INFO         | Wait for emulator (pid 73392) 20 seconds to shutdown gracefully before kill;you can set environment variable ANDROID_EMULATOR_WAIT_TIME_BEFORE_KILL(in seconds) to change the default value (20 seconds)
+
+WARNING      | Not saving state: RAM not mapped as shared
+INFO         | Saving snapshot 'default_boot' using 3 ms
+pc_memory_init: above 4g size: 40000000
