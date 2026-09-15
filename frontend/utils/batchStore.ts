@@ -6,9 +6,15 @@ import { StoredBatch } from '@/types';
 
 const BATCHES_DIR = `${FileSystem.documentDirectory}batches/`;
 const METADATA_FILE_NAME = 'batch.json';
-const EXPORT_DIRECTORY_NAME = 'iwrc_imaging_batches';
-const EXPORT_DIRECTORY_URI_KEY = 'iwrc_imaging_export_directory_uri';
+const ROOT_DIRECTORY_NAME = 'IWRC imaging';
+const ROOT_DIRECTORY_URI_KEY = 'iwrc_imaging_root_directory_uri';
 const LIGHTING_OPTIONS = require('@/assets/data/lighting.json') as { id: number; name: string }[];
+
+// Android has no writable path apps can reach without either a Storage Access
+// Framework grant or the (Play Store discouraged) all-files permission, so
+// batches are saved into a folder the user picks via SAF. Other platforms
+// fall back to the app's private document directory.
+const USE_DEVICE_FOLDER = Platform.OS === 'android';
 
 async function ensureDirectory(uri: string) {
   const info = await FileSystem.getInfoAsync(uri);
@@ -97,62 +103,61 @@ function toInternalMetadata(batch: StoredBatch) {
   };
 }
 
-function toExportMetadata(batch: StoredBatch, imageFileNames: string[]) {
-  return {
-    batch_name: batch.name,
-    location_country: batch.locationCountry ?? '',
-    location_state: batch.locationState ?? '',
-    botanical_name: batch.botanicalName ?? '',
-    weed_background: batch.weedBackground ?? '',
-    weed_site: batch.weedSite ?? '',
-    growth_stage: batch.growthStage ?? '',
-    soil_color: batch.soilColor ?? '',
-    lighting: getLightingNameById(batch.lightingId),
-    images: Object.fromEntries(imageFileNames.map((fileName) => [fileName, ''])),
-    saved_at: batch.savedAt,
-  };
+/** Finds a direct child of a SAF directory by its display name, or null if absent. */
+async function findChildUri(parentUri: string, childName: string) {
+  const entries = await FileSystem.StorageAccessFramework.readDirectoryAsync(parentUri);
+  return entries.find((uri) => decodeURIComponent(uri).split('/').pop() === childName) ?? null;
 }
 
-async function getExportDirectoryUri() {
-  if (Platform.OS !== 'android') {
-    throw new Error('Documents export is currently supported on Android only.');
-  }
-
-  const savedUri = await AsyncStorage.getItem(EXPORT_DIRECTORY_URI_KEY);
+/**
+ * Returns the SAF URI for the user-selected "IWRC imaging" folder, prompting
+ * the user to pick a folder the first time this is called. The picker is
+ * hinted to open in Documents, but the user can choose any folder - "IWRC
+ * imaging" is then created (or reused) inside whatever they pick.
+ * When `promptIfMissing` is false, returns null instead of prompting.
+ */
+async function getRootDirectoryUri(promptIfMissing: boolean): Promise<string | null> {
+  const savedUri = await AsyncStorage.getItem(ROOT_DIRECTORY_URI_KEY);
   if (savedUri) {
-    const savedDirectory = await FileSystem.getInfoAsync(savedUri);
-    if (savedDirectory.exists) return savedUri;
-    await AsyncStorage.removeItem(EXPORT_DIRECTORY_URI_KEY);
+    const info = await FileSystem.getInfoAsync(savedUri);
+    if (info.exists) return savedUri;
+    await AsyncStorage.removeItem(ROOT_DIRECTORY_URI_KEY);
   }
 
-  const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+  if (!promptIfMissing) return null;
+
+  const initialUri = FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Documents');
+  const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(initialUri);
   if (!permission.granted) {
-    throw new Error('Documents folder permission was not granted.');
+    throw new Error('Folder permission was not granted.');
   }
 
-  const exportRootUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(
-    permission.directoryUri,
-    EXPORT_DIRECTORY_NAME
-  );
-  await AsyncStorage.setItem(EXPORT_DIRECTORY_URI_KEY, exportRootUri);
-  return exportRootUri;
+  const existingRoot = await findChildUri(permission.directoryUri, ROOT_DIRECTORY_NAME);
+  const rootUri =
+    existingRoot ??
+    (await FileSystem.StorageAccessFramework.makeDirectoryAsync(
+      permission.directoryUri,
+      ROOT_DIRECTORY_NAME
+    ));
+  await AsyncStorage.setItem(ROOT_DIRECTORY_URI_KEY, rootUri);
+  return rootUri;
 }
 
-export async function exportBatchToDocuments(batch: StoredBatch) {
-  const exportRootUri = await getExportDirectoryUri();
-  const batchDirectoryName = safePathSegment(batch.id || `batch-${Date.now()}`);
-  let batchUri: string;
-
-  try {
-    batchUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(
-      exportRootUri,
-      batchDirectoryName
-    );
-  } catch {
-    throw new Error('This batch has already been exported to the selected folder.');
+async function saveBatchToDeviceFolder(batch: StoredBatch): Promise<StoredBatch> {
+  const rootUri = await getRootDirectoryUri(true);
+  if (!rootUri) {
+    throw new Error('Folder permission was not granted.');
   }
 
-  const imageFileNames: string[] = [];
+  const id = safePathSegment(batch.id || `batch-${Date.now()}`);
+
+  const existingBatchUri = await findChildUri(rootUri, id);
+  if (existingBatchUri) {
+    await FileSystem.StorageAccessFramework.deleteAsync(existingBatchUri);
+  }
+  const batchUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(rootUri, id);
+
+  const permanentImages = [];
   for (const [index, image] of batch.images.entries()) {
     const fileName = `image_${String(index + 1).padStart(3, '0')}.${imageExtension(image.uri)}`;
     const imageUri = await FileSystem.StorageAccessFramework.createFileAsync(
@@ -161,23 +166,69 @@ export async function exportBatchToDocuments(batch: StoredBatch) {
       imageMimeType(fileName)
     );
     await FileSystem.copyAsync({ from: image.uri, to: imageUri });
-    imageFileNames.push(fileName);
+    permanentImages.push({ id: image.id, uri: imageUri });
   }
+
+  const storedBatch: StoredBatch = {
+    ...batch,
+    id,
+    name: batch.name || id,
+    images: permanentImages,
+    synced: false,
+    savedAt: batch.savedAt || new Date().toISOString(),
+  };
 
   const jsonUri = await FileSystem.StorageAccessFramework.createFileAsync(
     batchUri,
-    `${batchDirectoryName}.json`,
+    METADATA_FILE_NAME,
     'application/json'
   );
   await FileSystem.writeAsStringAsync(
     jsonUri,
-    JSON.stringify(toExportMetadata(batch, imageFileNames), null, 2)
+    JSON.stringify(toInternalMetadata(storedBatch), null, 2)
   );
 
-  return `${EXPORT_DIRECTORY_NAME}/${batchDirectoryName}`;
+  return storedBatch;
 }
 
-export async function saveBatch(batch: StoredBatch) {
+async function getSavedBatchesFromDeviceFolder(): Promise<StoredBatch[]> {
+  const rootUri = await getRootDirectoryUri(false);
+  if (!rootUri) return [];
+
+  const entries = await FileSystem.StorageAccessFramework.readDirectoryAsync(rootUri);
+  const batches: StoredBatch[] = [];
+
+  for (const entryUri of entries) {
+    const fallbackId = decodeURIComponent(entryUri).split('/').pop() ?? entryUri;
+    try {
+      const children = await FileSystem.StorageAccessFramework.readDirectoryAsync(entryUri);
+      const jsonUri = children.find(
+        (uri) => decodeURIComponent(uri).split('/').pop() === METADATA_FILE_NAME
+      );
+      if (!jsonUri) continue;
+      const content = await FileSystem.readAsStringAsync(jsonUri);
+      batches.push(normalizeSavedBatch(JSON.parse(content), fallbackId));
+    } catch {
+      console.warn('Skipping invalid saved batch:', fallbackId);
+    }
+  }
+
+  return batches.sort(
+    (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+  );
+}
+
+async function deleteBatchFromDeviceFolder(id: string) {
+  const rootUri = await getRootDirectoryUri(false);
+  if (!rootUri) return;
+
+  const batchUri = await findChildUri(rootUri, safePathSegment(id));
+  if (batchUri) {
+    await FileSystem.StorageAccessFramework.deleteAsync(batchUri);
+  }
+}
+
+async function saveBatchInternal(batch: StoredBatch): Promise<StoredBatch> {
   await ensureDirectory(BATCHES_DIR);
   const id = safePathSegment(batch.id || `batch-${Date.now()}`);
   const batchDirectory = `${BATCHES_DIR}${id}/`;
@@ -209,7 +260,7 @@ export async function saveBatch(batch: StoredBatch) {
   return storedBatch;
 }
 
-export async function getSavedBatches(): Promise<StoredBatch[]> {
+async function getSavedBatchesInternal(): Promise<StoredBatch[]> {
   await ensureDirectory(BATCHES_DIR);
   const entries = await FileSystem.readDirectoryAsync(BATCHES_DIR);
   const batches: StoredBatch[] = [];
@@ -238,7 +289,7 @@ export async function getSavedBatches(): Promise<StoredBatch[]> {
   );
 }
 
-export async function deleteBatch(id: string) {
+async function deleteBatchInternal(id: string) {
   const safeId = safePathSegment(id);
   const batchDirectory = `${BATCHES_DIR}${safeId}`;
   const legacyFile = `${BATCHES_DIR}${safeId}.json`;
@@ -250,4 +301,16 @@ export async function deleteBatch(id: string) {
   if (legacyInfo.exists) {
     await FileSystem.deleteAsync(legacyFile, { idempotent: true });
   }
+}
+
+export async function saveBatch(batch: StoredBatch): Promise<StoredBatch> {
+  return USE_DEVICE_FOLDER ? saveBatchToDeviceFolder(batch) : saveBatchInternal(batch);
+}
+
+export async function getSavedBatches(): Promise<StoredBatch[]> {
+  return USE_DEVICE_FOLDER ? getSavedBatchesFromDeviceFolder() : getSavedBatchesInternal();
+}
+
+export async function deleteBatch(id: string) {
+  return USE_DEVICE_FOLDER ? deleteBatchFromDeviceFolder(id) : deleteBatchInternal(id);
 }

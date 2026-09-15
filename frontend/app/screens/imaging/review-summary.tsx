@@ -79,13 +79,16 @@ export default function ReviewSummaryScreen() {
       const savedBatch = await saveBatch(normalizedBatch as any);
       Alert.alert(
         "Saved locally",
-        `${savedBatch.images.length} images and the batch details are stored only on this device.`
+        `${savedBatch.images.length} images and the batch details were saved to the "IWRC imaging" folder on this device.`
       );
       setBatchData(createNewBatch());
       router.back();
     } catch (err) {
       console.error("Save error:", err);
-      Alert.alert("Save Failed", "Unable to save batch.");
+      Alert.alert(
+        "Save Failed",
+        err instanceof Error ? err.message : "Unable to save batch."
+      );
     } finally {
       setLoading(false);
     }

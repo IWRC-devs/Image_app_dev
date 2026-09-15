@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { StoredBatch } from '@/types';
-import { deleteBatch, exportBatchToDocuments, getSavedBatches } from '@/utils/batchStore';
+import { deleteBatch, getSavedBatches } from '@/utils/batchStore';
 
 export default function SavedBatchesScreen() {
   const [batches, setBatches] = useState<StoredBatch[]>([]);
@@ -29,18 +29,6 @@ export default function SavedBatchesScreen() {
       loadBatches();
     }, [loadBatches])
   );
-
-  const handleExport = async (batch: StoredBatch) => {
-    try {
-      const exportPath = await exportBatchToDocuments(batch);
-      Alert.alert('Exported', `A local copy was created in ${exportPath}.`);
-    } catch (error) {
-      Alert.alert(
-        'Export not completed',
-        error instanceof Error ? error.message : 'Unable to export this batch.'
-      );
-    }
-  };
 
   const handleDelete = (batch: StoredBatch) => {
     Alert.alert(
@@ -66,7 +54,8 @@ export default function SavedBatchesScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <ThemedText style={styles.heading}>Saved Batches</ThemedText>
         <ThemedText style={styles.privacyNote}>
-          Stored only on this device. Nothing is uploaded to a server or cloud account.
+          Saved to the &quot;IWRC imaging&quot; folder you selected on this device. Nothing is
+          uploaded to a server or cloud account.
         </ThemedText>
 
         {loading ? (
@@ -90,15 +79,6 @@ export default function SavedBatchesScreen() {
               </View>
 
               <View style={styles.actions}>
-                {Platform.OS === 'android' && (
-                  <TouchableOpacity
-                    accessibilityLabel={`Export ${batch.name} to Documents`}
-                    onPress={() => handleExport(batch)}
-                    style={styles.iconButton}
-                  >
-                    <Ionicons name="folder-outline" size={24} color="#4CAF50" />
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity
                   accessibilityLabel={`Delete ${batch.name}`}
                   onPress={() => handleDelete(batch)}
