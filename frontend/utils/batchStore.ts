@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 import { StoredBatch } from '@/types';
 
 const BATCHES_DIR = `${FileSystem.documentDirectory}batches/`;
-const METADATA_FILE_NAME = 'batch.json';
+const METADATA_FILE_NAME = 'batch.txt';
 const ROOT_DIRECTORY_NAME = 'IWRC imaging';
 const ROOT_DIRECTORY_URI_KEY = 'iwrc_imaging_root_directory_uri';
 const LIGHTING_OPTIONS = require('@/assets/data/lighting.json') as { id: number; name: string }[];
@@ -189,7 +189,7 @@ async function saveBatchToDeviceFolder(batch: StoredBatch): Promise<StoredBatch>
   const jsonUri = await FileSystem.StorageAccessFramework.createFileAsync(
     batchUri,
     METADATA_FILE_NAME,
-    'application/json'
+    'text/plain'
   );
   await FileSystem.writeAsStringAsync(
     jsonUri,
