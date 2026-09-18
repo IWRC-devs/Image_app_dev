@@ -1,3 +1,4 @@
+import { PageTransition } from "@/components/PageTransition";
 import { ThemedText } from "@/components/ThemedText";
 import { useRouter } from "expo-router";
 import { useState, useEffect, useMemo } from "react";
@@ -144,9 +145,11 @@ export default function ParametersScreen() {
   }
 
   return (
+    <PageTransition>
     <View style={{ flex: 1, backgroundColor }}>
       <View style={{ flex: 1, padding: 16 }}>
         <ScrollView
+          style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 60, flexGrow: 1 }}
           showsVerticalScrollIndicator={false}>
           <ThemedText style={styles.sectionTitle}>Botanical name</ThemedText>
@@ -230,6 +233,7 @@ export default function ParametersScreen() {
         )}
       </View>
     </View>
+    </PageTransition>
   );
 }
 

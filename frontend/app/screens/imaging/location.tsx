@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
+import { PageTransition } from "@/components/PageTransition";
 import { type BatchData, createNewBatch, useBatch } from "../../context/BatchContext";
 import { saveBatch } from "@/utils/batchStore";
 
@@ -84,6 +85,7 @@ export default function LocationScreen() {
   };
 
   return (
+    <PageTransition>
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.label}>Country</Text>
       <View style={styles.pickerBox}>
@@ -125,6 +127,7 @@ export default function LocationScreen() {
         <Text style={styles.buttonText}>Continue</Text>
       </TouchableOpacity>
     </ScrollView>
+    </PageTransition>
   );
 }
 

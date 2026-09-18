@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
+import { PageTransition } from '@/components/PageTransition';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { StoredBatch } from '@/types';
@@ -50,8 +51,9 @@ export default function SavedBatchesScreen() {
   };
 
   return (
+    <PageTransition>
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
         <ThemedText style={styles.heading}>Saved Batches</ThemedText>
         <ThemedText style={styles.privacyNote}>
           Saved to the &quot;IWRC imaging&quot; folder you selected on this device. Nothing is
@@ -92,6 +94,7 @@ export default function SavedBatchesScreen() {
         )}
       </ScrollView>
     </ThemedView>
+    </PageTransition>
   );
 }
 

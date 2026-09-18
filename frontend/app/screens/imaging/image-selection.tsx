@@ -1,3 +1,4 @@
+import { PageTransition } from "@/components/PageTransition";
 import { ThemedText } from "@/components/ThemedText";
 import { useRouter } from "expo-router";
 import { View, StyleSheet, TouchableOpacity, Image, Alert, useColorScheme } from "react-native";
@@ -52,6 +53,7 @@ export default function ImageSelectionScreen() {
   };
 
   return (
+    <PageTransition>
     <View style={{ flex: 1, backgroundColor }}>
       <View style={styles.content}>
         {/* Pick Images Button */}
@@ -112,6 +114,7 @@ export default function ImageSelectionScreen() {
 
       </View>
     </View>
+    </PageTransition>
   );
 }
 

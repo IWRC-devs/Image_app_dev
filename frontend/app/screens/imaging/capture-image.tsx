@@ -1,3 +1,4 @@
+import { PageTransition } from "@/components/PageTransition";
 import { ThemedText } from "@/components/ThemedText";
 import { useRouter } from "expo-router";
 import { SafeAreaView, ScrollView, View, StyleSheet, TouchableOpacity, Image, Alert } from "react-native";
@@ -53,8 +54,12 @@ export default function CaptureImageScreen() {
   };
 
   return (
+    <PageTransition>
     <SafeAreaView style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
+        showsVerticalScrollIndicator={false}>
         {/* Camera Icon */}
         <TouchableOpacity style={styles.cameraButton} onPress={handleCapture}>
           <MaterialIcons name="add-a-photo" size={56} color="#fff" />
@@ -95,6 +100,7 @@ export default function CaptureImageScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
+    </PageTransition>
   );
 }
 

@@ -1,0 +1,289 @@
+<title>IWRC Imaging APK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f4f7f0;
+    --surface: #ffffff;
+    --ink: #182018;
+    --ink-soft: #4c5a4c;
+    --line: #d9e1d4;
+    --accent: #2f7d4f;
+    --accent-ink: #ffffff;
+    --accent-soft: #e6f0e7;
+    --mono-chip: #eef2ea;
+    --shadow: 0 1px 2px rgba(24,32,24,0.06), 0 8px 24px rgba(24,32,24,0.05);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #12160f;
+      --surface: #1b2118;
+      --ink: #e9efe4;
+      --ink-soft: #a9b8a3;
+      --line: #2b3327;
+      --accent: #5cbe85;
+      --accent-ink: #0d150f;
+      --accent-soft: #22301f;
+      --mono-chip: #222a1f;
+      --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 12px 28px rgba(0,0,0,0.4);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #12160f;
+    --surface: #1b2118;
+    --ink: #e9efe4;
+    --ink-soft: #a9b8a3;
+    --line: #2b3327;
+    --accent: #5cbe85;
+    --accent-ink: #0d150f;
+    --accent-soft: #22301f;
+    --mono-chip: #222a1f;
+    --shadow: 0 1px 2px rgba(0,0,0,0.35), 0 12px 28px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    padding-inline: 20px;
+    padding-block: 40px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .sheet {
+    width: 100%;
+    max-width: 460px;
+  }
+
+  .tag {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    padding: 28px 26px 26px;
+  }
+
+  .tag::before {
+    content: "";
+    position: absolute;
+    top: 22px;
+    left: -7px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--paper);
+    border: 1px solid var(--line);
+  }
+
+  .eyebrow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  .eyebrow span:last-child { color: var(--ink-soft); }
+
+  h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 0 0 4px;
+  }
+
+  .subtitle {
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    line-height: 1.5;
+    margin: 0 0 22px;
+    max-width: 42ch;
+  }
+
+  .qr-block {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .qr-frame {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    display: inline-flex;
+  }
+
+  .qr-frame canvas, .qr-frame img { display: block; }
+
+  .specs {
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding-block: 14px;
+    margin-bottom: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+  }
+
+  .spec-row dt { color: var(--ink-soft); }
+  .spec-row dd {
+    margin: 0;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .steps {
+    list-style: none;
+    margin: 0 0 22px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .steps li {
+    display: flex;
+    gap: 12px;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+
+  .steps .num {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .steps b { color: var(--ink); }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 14.5px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 7px;
+    padding: 12px 16px;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--line);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    word-break: break-all;
+  }
+
+  .btn-secondary:active { background: var(--mono-chip); }
+
+  .note {
+    margin-top: 18px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  .note b { color: var(--ink); }
+
+  @media (max-width: 380px) {
+    h1 { font-size: 26px; }
+  }
+</style>
+
+<div class="sheet">
+  <div class="tag">
+    <div class="eyebrow">
+      <span>Internal build</span>
+      <span id="stamp"></span>
+    </div>
+
+    <h1>IWRC Imaging</h1>
+    <p class="subtitle">Field-capture app for weed imaging batches. Scan to install this test build directly on the tablet.</p>
+
+    <div class="qr-block">
+      <div class="qr-frame" id="qr"></div>
+    </div>
+
+    <dl class="specs">
+      <div class="spec-row"><dt>package</dt><dd>com.iwrc.devs.iwrcImaging</dd></div>
+      <div class="spec-row"><dt>version</dt><dd>1.0.0</dd></div>
+      <div class="spec-row"><dt>variant</dt><dd>release, debug-signed</dd></div>
+      <div class="spec-row"><dt>size</dt><dd>~86 MB</dd></div>
+    </dl>
+
+    <ol class="steps">
+      <li><span class="num">1</span><span>Open the <b>Camera</b> app on the tablet and scan the code above.</span></li>
+      <li><span class="num">2</span><span>Tap the link &mdash; it opens the file in <b>Google Drive</b>.</span></li>
+      <li><span class="num">3</span><span>Tap the download icon, then open the downloaded <b>.apk</b>.</span></li>
+      <li><span class="num">4</span><span>Allow <b>install from this source</b> if prompted, then tap <b>Install</b>.</span></li>
+    </ol>
+
+    <div class="actions">
+      <a class="btn btn-primary" href="https://drive.google.com/file/d/1cxNg6xRViGEqJ8a6dXOBZvlZcCdxrlob/view?usp=sharing" target="_blank" rel="noopener">Open link directly</a>
+      <a class="btn btn-secondary" href="https://drive.google.com/file/d/1cxNg6xRViGEqJ8a6dXOBZvlZcCdxrlob/view?usp=sharing" target="_blank" rel="noopener">drive.google.com/file/d/1cxNg6xRViGEqJ8a6dXOBZvlZcCdxrlob</a>
+    </div>
+
+    <p class="note"><b>Note:</b> this build is signed with a debug key, not a Play Store certificate &mdash; Android will ask you to confirm installing from an unknown source. That's expected for internal testing.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  new QRCode(document.getElementById("qr"), {
+    text: "https://drive.google.com/file/d/1cxNg6xRViGEqJ8a6dXOBZvlZcCdxrlob/view?usp=sharing",
+    width: 208,
+    height: 208,
+    colorDark: "#182018",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  document.getElementById("stamp").textContent = new Date().toISOString().slice(0, 10);
+</script>

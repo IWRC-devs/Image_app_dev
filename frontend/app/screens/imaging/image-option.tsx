@@ -1,3 +1,4 @@
+import { PageTransition } from "@/components/PageTransition";
 import { ThemedText } from "@/components/ThemedText";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -42,9 +43,13 @@ export default function ImageOptionScreen() {
   };
 
   return (
+    <PageTransition>
     <View style={{ flex: 1 }}>
       <View style={{ flex: 1, padding: 16 }}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 60 }}
+          showsVerticalScrollIndicator={false}>
 
 
           <View style={styles.listContainer}>
@@ -91,6 +96,7 @@ export default function ImageOptionScreen() {
           )}
       </View>
     </View>
+    </PageTransition>
   );
 }
 

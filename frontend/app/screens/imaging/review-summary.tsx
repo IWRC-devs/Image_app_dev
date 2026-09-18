@@ -10,6 +10,8 @@ import {
   useColorScheme,
   ActivityIndicator,
 } from "react-native";
+import { PageTransition } from "@/components/PageTransition";
+import { SuccessOverlay } from "@/components/SuccessOverlay";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { createNewBatch, formatBatchName, useBatch } from "../../context/BatchContext";
@@ -23,6 +25,7 @@ export default function ReviewSummaryScreen() {
   const backgroundColor = colorScheme === "dark" ? "#1D3D47" : "#A1CEDC";
 
   const [loading, setLoading] = useState(false);
+  const [savedImageCount, setSavedImageCount] = useState<number | null>(null);
 
   const selectedImages = batchData?.images ?? [];
 
@@ -77,12 +80,7 @@ export default function ReviewSummaryScreen() {
         savedAt: new Date().toISOString(),
       };
       const savedBatch = await saveBatch(normalizedBatch as any);
-      Alert.alert(
-        "Saved locally",
-        `${savedBatch.images.length} images and the batch details were saved to the "IWRC imaging" folder on this device.`
-      );
-      setBatchData(createNewBatch());
-      router.back();
+      setSavedImageCount(savedBatch.images.length);
     } catch (err) {
       console.error("Save error:", err);
       Alert.alert(
@@ -92,6 +90,12 @@ export default function ReviewSummaryScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSuccessDone = () => {
+    setSavedImageCount(null);
+    setBatchData(createNewBatch());
+    router.replace("/");
   };
 
   if (loading)
@@ -104,7 +108,14 @@ export default function ReviewSummaryScreen() {
     );
 
   return (
-    <View style={{ flex: 1 }}>
+    <PageTransition>
+      <SuccessOverlay
+        visible={savedImageCount !== null}
+        title="Batch saved!"
+        message={`${savedImageCount ?? 0} image${savedImageCount === 1 ? "" : "s"} and the batch details were saved to the "IWRC imaging" folder on this device.`}
+        onDone={handleSuccessDone}
+      />
+      <View style={{ flex: 1 }}>
       <ThemedView style={[styles.titleContainer, { backgroundColor }]}>
         <ThemedText type="title" style={styles.title}>
           Review & Save
@@ -113,6 +124,7 @@ export default function ReviewSummaryScreen() {
 
       <View style={styles.content}>
         <ScrollView
+          style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: 60 }}
           showsVerticalScrollIndicator={false}
         >
@@ -172,7 +184,8 @@ export default function ReviewSummaryScreen() {
           )}
         </ScrollView>
       </View>
-    </View>
+      </View>
+    </PageTransition>
   );
 }
 
