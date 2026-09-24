@@ -119,9 +119,17 @@ async function findChildUri(parentUri: string, childName: string) {
 async function getRootDirectoryUri(promptIfMissing: boolean): Promise<string | null> {
   const savedUri = await AsyncStorage.getItem(ROOT_DIRECTORY_URI_KEY);
   if (savedUri) {
-    const info = await FileSystem.getInfoAsync(savedUri);
-    if (info.exists) return savedUri;
-    await AsyncStorage.removeItem(ROOT_DIRECTORY_URI_KEY);
+    // FileSystem.getInfoAsync() targets real filesystem paths; on some
+    // Android builds it can't stat a SAF content:// tree URI at all and
+    // throws "Function not implemented" instead of reporting non-existence.
+    // Probe with an actual SAF call instead, and treat any failure here
+    // (revoked permission, deleted folder, this quirk) as "needs re-grant".
+    try {
+      await FileSystem.StorageAccessFramework.readDirectoryAsync(savedUri);
+      return savedUri;
+    } catch {
+      await AsyncStorage.removeItem(ROOT_DIRECTORY_URI_KEY);
+    }
   }
 
   if (!promptIfMissing) return null;
