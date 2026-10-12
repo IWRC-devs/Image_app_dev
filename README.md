@@ -8,7 +8,7 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 - **Fully local, no backend.** The app does not upload batches, images, or metadata to any server or cloud account. There is no login/account system.
 - **Capture flow**: Location → Parameters (botanical name, site, background, growth stage, soil color, lighting) → Image capture or manual selection → Review & Save, with a slide-in page transition between steps and a success screen (with a **Done** button that returns to the home screen) after saving.
 - **Saved Batches screen**: lists previously saved batches on-device and allows deleting them.
-- **Latest internal build**: [`releases/IWRC-Imaging-v1.0.0.apk`](releases/IWRC-Imaging-v1.0.0.apk) — a debug-signed APK for sideloading onto test devices (not published to the Play Store). Android will warn about installing from an unknown source; that's expected.
+- **Latest internal build**: [`releases/android/IWRC-Imaging-v1.0.0.apk`](releases/android/IWRC-Imaging-v1.0.0.apk) — a debug-signed APK for sideloading onto test devices (not published to the Play Store). Android will warn about installing from an unknown source; that's expected.
 
 ## Where data is saved
 

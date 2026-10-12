@@ -14,3 +14,8 @@ local.properties
 
 # Bundle artifacts
 *.jsbundle
+
+# Release signing - never commit the real upload key or its passwords
+*.jks
+*.keystore
+keystore.properties
