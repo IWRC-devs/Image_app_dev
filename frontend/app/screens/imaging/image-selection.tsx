@@ -5,8 +5,8 @@ import { View, StyleSheet, TouchableOpacity, Image, Alert, useColorScheme } from
 import { Button } from "react-native-paper";
 import * as ImagePicker from 'expo-image-picker';
 import { useBatch } from "../../context/BatchContext";
-import uuid from 'react-native-uuid';
 import { Ionicons } from "@expo/vector-icons";
+import { imageItemFromPickerAsset } from "@/utils/imageMetadata";
 
 export default function ImageSelectionScreen() {
   const colorScheme = useColorScheme();
@@ -28,7 +28,7 @@ export default function ImageSelectionScreen() {
     });
 
     if (!result.canceled) {
-      const newItems = result.assets.map(asset => ({ id: uuid.v4() as string, uri: asset.uri }));
+      const newItems = result.assets.map(imageItemFromPickerAsset);
       const updatedImages = [...selectedImages, ...newItems].slice(0, 500);
       //setSelectedImages(updatedImages);
       setBatchData({ ...batchData, images: updatedImages }); // update context
@@ -52,6 +52,10 @@ export default function ImageSelectionScreen() {
     router.push("../../screens/imaging/review-summary");
   };
 
+  const annotateImage = (id: string) => {
+    router.push({ pathname: "/screens/imaging/annotation-editor", params: { imageId: id } });
+  };
+
   return (
     <PageTransition>
     <View style={{ flex: 1, backgroundColor }}>
@@ -67,7 +71,15 @@ export default function ImageSelectionScreen() {
         <View style={styles.grid}>
           {selectedImages.map((item) => (
             <View key={item.id} style={styles.imageWrapper}>
-              <Image source={{ uri: item.uri }} style={styles.thumbnail} />
+              <TouchableOpacity style={styles.imageButton} onPress={() => annotateImage(item.id)}>
+                <Image source={{ uri: item.uri }} style={styles.thumbnail} />
+                <View style={styles.annotationBadge}>
+                  <Ionicons name="scan-outline" size={13} color="#fff" />
+                  <ThemedText style={styles.annotationBadgeText}>
+                    {item.annotations?.length ?? 0}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
 
               {/* Remove button */}
               <TouchableOpacity
@@ -79,6 +91,10 @@ export default function ImageSelectionScreen() {
             </View>
           ))}
         </View>
+
+        {selectedImages.length > 0 && (
+          <ThemedText style={styles.annotationHint}>Tap a photo to annotate weeds.</ThemedText>
+        )}
 
         {/* Continue and Clear buttons */}
         {selectedImages.length > 0 && (
@@ -190,6 +206,31 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 8,
+  },
+  imageButton: {
+    width: '100%',
+    height: '100%',
+  },
+  annotationBadge: {
+    position: 'absolute',
+    left: 5,
+    bottom: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  annotationBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  annotationHint: {
+    color: '#fff',
+    marginTop: 2,
   },
   removeButton: {
     position: 'absolute',

@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 
-import { StoredBatch } from '@/types';
+import { BoundingBoxAnnotation, ImageItem, StoredBatch } from '@/types';
+import { imageOrientation } from '@/utils/imageMetadata';
 
 const BATCHES_DIR = `${FileSystem.documentDirectory}batches/`;
 const METADATA_FILE_NAME = 'batch.txt';
@@ -49,6 +50,39 @@ function imageMimeType(fileName: string) {
   return 'image/jpeg';
 }
 
+function normalizeAnnotation(annotation: any, index: number): BoundingBoxAnnotation | null {
+  const yolo = annotation?.bbox_yolo ?? annotation;
+  const xCenter = Number(yolo?.x_center ?? yolo?.xCenter);
+  const yCenter = Number(yolo?.y_center ?? yolo?.yCenter);
+  const width = Number(yolo?.width);
+  const height = Number(yolo?.height);
+  if (![xCenter, yCenter, width, height].every(Number.isFinite)) return null;
+
+  return {
+    id: annotation?.id ?? `annotation-${index}`,
+    classId: Number(annotation?.class_id ?? annotation?.classId ?? 0),
+    className: annotation?.class_name ?? annotation?.className,
+    xCenter,
+    yCenter,
+    width,
+    height,
+  };
+}
+
+function yoloLine(annotation: BoundingBoxAnnotation) {
+  const values = [
+    annotation.xCenter,
+    annotation.yCenter,
+    annotation.width,
+    annotation.height,
+  ].map((value) => value.toFixed(6));
+  return `${annotation.classId} ${values.join(' ')}`;
+}
+
+function labelFileName(imageFileName: string) {
+  return imageFileName.replace(/\.[^.]+$/, '.txt');
+}
+
 function normalizeSavedBatch(batch: any, fallbackId?: string): StoredBatch {
   const lightingId =
     typeof batch?.lighting === 'string'
@@ -74,6 +108,13 @@ function normalizeSavedBatch(batch: any, fallbackId?: string): StoredBatch {
       .map((image: any, index: number) => ({
         id: image?.id ?? `${index}`,
         uri: image.uri,
+        fileName: image?.file_name ?? image?.fileName ?? null,
+        width: image?.resolution?.width ?? image?.width ?? undefined,
+        height: image?.resolution?.height ?? image?.height ?? undefined,
+        fileSizeBytes: image?.file_size_bytes ?? image?.fileSizeBytes ?? undefined,
+        annotations: (Array.isArray(image?.annotations) ? image.annotations : [])
+          .map(normalizeAnnotation)
+          .filter((annotation: BoundingBoxAnnotation | null): annotation is BoundingBoxAnnotation => Boolean(annotation)),
       })),
     selectedOption: batch?.selected_option ?? batch?.selectedOption,
     synced: false,
@@ -83,7 +124,7 @@ function normalizeSavedBatch(batch: any, fallbackId?: string): StoredBatch {
 
 function toInternalMetadata(batch: StoredBatch) {
   return {
-    schema_version: 2,
+    schema_version: 3,
     id: batch.id,
     batch_name: batch.name,
     affiliation_id: batch.affiliationId ?? null,
@@ -98,9 +139,42 @@ function toInternalMetadata(batch: StoredBatch) {
     lighting_id: batch.lightingId ?? null,
     lighting: getLightingNameById(batch.lightingId),
     selected_option: batch.selectedOption ?? null,
-    images: batch.images,
+    annotation_format: 'YOLO normalized (class_id x_center y_center width height)',
+    classes: [{ id: 0, name: batch.botanicalName || 'weed_of_interest' }],
+    images: batch.images.map((image) => ({
+      id: image.id,
+      file_name: image.fileName ?? '',
+      uri: image.uri,
+      resolution: {
+        width: image.width ?? null,
+        height: image.height ?? null,
+      },
+      orientation: imageOrientation(image.width, image.height),
+      file_size_bytes: image.fileSizeBytes ?? null,
+      annotations: (image.annotations ?? []).map((annotation) => ({
+        id: annotation.id,
+        class_id: annotation.classId,
+        class_name: batch.botanicalName ?? annotation.className ?? 'weed_of_interest',
+        bbox_yolo: {
+          x_center: annotation.xCenter,
+          y_center: annotation.yCenter,
+          width: annotation.width,
+          height: annotation.height,
+        },
+        yolo_line: yoloLine(annotation),
+      })),
+    })),
     saved_at: batch.savedAt,
   };
+}
+
+async function writeSafTextFile(directoryUri: string, fileName: string, content: string) {
+  const uri = await FileSystem.StorageAccessFramework.createFileAsync(
+    directoryUri,
+    fileName,
+    'text/plain'
+  );
+  await FileSystem.writeAsStringAsync(uri, content);
 }
 
 /** Finds a direct child of a SAF directory by its display name, or null if absent. */
@@ -165,7 +239,7 @@ async function saveBatchToDeviceFolder(batch: StoredBatch): Promise<StoredBatch>
   }
   const batchUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(rootUri, id);
 
-  const permanentImages = [];
+  const permanentImages: ImageItem[] = [];
   for (const [index, image] of batch.images.entries()) {
     const fileName = `image_${String(index + 1).padStart(3, '0')}.${imageExtension(image.uri)}`;
     const imageUri = await FileSystem.StorageAccessFramework.createFileAsync(
@@ -182,7 +256,12 @@ async function saveBatchToDeviceFolder(batch: StoredBatch): Promise<StoredBatch>
     await FileSystem.writeAsStringAsync(imageUri, base64Image, {
       encoding: FileSystem.EncodingType.Base64,
     });
-    permanentImages.push({ id: image.id, uri: imageUri });
+    permanentImages.push({ ...image, uri: imageUri, fileName });
+    await writeSafTextFile(
+      batchUri,
+      labelFileName(fileName),
+      (image.annotations ?? []).map(yoloLine).join('\n')
+    );
   }
 
   const storedBatch: StoredBatch = {
@@ -193,6 +272,12 @@ async function saveBatchToDeviceFolder(batch: StoredBatch): Promise<StoredBatch>
     synced: false,
     savedAt: batch.savedAt || new Date().toISOString(),
   };
+
+  await writeSafTextFile(
+    batchUri,
+    'classes.txt',
+    batch.botanicalName || 'weed_of_interest'
+  );
 
   const jsonUri = await FileSystem.StorageAccessFramework.createFileAsync(
     batchUri,
@@ -251,13 +336,18 @@ async function saveBatchInternal(batch: StoredBatch): Promise<StoredBatch> {
   const imagesDirectory = `${batchDirectory}images/`;
   await ensureDirectory(imagesDirectory);
 
-  const permanentImages = [];
+  const permanentImages: ImageItem[] = [];
   for (const [index, image] of batch.images.entries()) {
-    const destination = `${imagesDirectory}image_${String(index + 1).padStart(3, '0')}.${imageExtension(image.uri)}`;
+    const fileName = `image_${String(index + 1).padStart(3, '0')}.${imageExtension(image.uri)}`;
+    const destination = `${imagesDirectory}${fileName}`;
     if (image.uri !== destination) {
       await FileSystem.copyAsync({ from: image.uri, to: destination });
     }
-    permanentImages.push({ id: image.id, uri: destination });
+    permanentImages.push({ ...image, uri: destination, fileName });
+    await FileSystem.writeAsStringAsync(
+      `${imagesDirectory}${labelFileName(fileName)}`,
+      (image.annotations ?? []).map(yoloLine).join('\n')
+    );
   }
 
   const storedBatch: StoredBatch = {
@@ -269,6 +359,10 @@ async function saveBatchInternal(batch: StoredBatch): Promise<StoredBatch> {
     savedAt: batch.savedAt || new Date().toISOString(),
   };
   const metadataPath = `${batchDirectory}${METADATA_FILE_NAME}`;
+  await FileSystem.writeAsStringAsync(
+    `${imagesDirectory}classes.txt`,
+    batch.botanicalName || 'weed_of_interest'
+  );
   await FileSystem.writeAsStringAsync(
     metadataPath,
     JSON.stringify(toInternalMetadata(storedBatch), null, 2)

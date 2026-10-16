@@ -88,6 +88,14 @@ export default function ImagingLayout() {
               href: null,
             }} />
           <Tabs.Screen
+            name="annotation-editor"
+            options={{
+              title: 'Annotate Weed',
+              href: null,
+              tabBarStyle: { display: 'none' },
+            }}
+          />
+          <Tabs.Screen
             name="pending-uploads"
             options={{
               href: null,
