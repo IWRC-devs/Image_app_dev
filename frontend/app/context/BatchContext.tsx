@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
+import { ImageItem } from "@/types";
 
-export type ImageItem = {
-  id: string;
-  uri: string;
-};
+export type { ImageItem } from "@/types";
 
 export type BatchData = {
   synced: any;

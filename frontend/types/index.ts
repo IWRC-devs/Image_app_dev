@@ -1,6 +1,26 @@
+export interface ImageExifMetadata {
+  capturedAt?: string;
+  cameraMake?: string;
+  cameraModel?: string;
+  lensModel?: string;
+  exposureTime?: string | number;
+  fNumber?: string | number;
+  iso?: string | number;
+  focalLengthMm?: string | number;
+  latitude?: number;
+  longitude?: number;
+  altitudeMeters?: number;
+}
+
 export interface ImageItem {
   id: string;
   uri: string;
+  fileName?: string | null;
+  width?: number;
+  height?: number;
+  mimeType?: string | null;
+  fileSizeBytes?: number;
+  exif?: ImageExifMetadata;
 }
 
 export interface StoredBatch {

@@ -5,8 +5,8 @@ import { View, StyleSheet, TouchableOpacity, Image, Alert, useColorScheme } from
 import { Button } from "react-native-paper";
 import * as ImagePicker from 'expo-image-picker';
 import { useBatch } from "../../context/BatchContext";
-import uuid from 'react-native-uuid';
 import { Ionicons } from "@expo/vector-icons";
+import { imageItemFromPickerAsset } from "@/utils/imageMetadata";
 
 export default function ImageSelectionScreen() {
   const colorScheme = useColorScheme();
@@ -25,10 +25,11 @@ export default function ImageSelectionScreen() {
       allowsMultipleSelection: true,
       mediaTypes: ['images'],
       quality: 0.7,
+      exif: true,
     });
 
     if (!result.canceled) {
-      const newItems = result.assets.map(asset => ({ id: uuid.v4() as string, uri: asset.uri }));
+      const newItems = result.assets.map(imageItemFromPickerAsset);
       const updatedImages = [...selectedImages, ...newItems].slice(0, 500);
       //setSelectedImages(updatedImages);
       setBatchData({ ...batchData, images: updatedImages }); // update context
