@@ -1,0 +1,23 @@
+{
+  "id": "/Image_app_dev/",
+  "name": "IWRC Imaging",
+  "short_name": "IWRC Imaging",
+  "description": "Capture weed imaging batches and save field data on this device.",
+  "start_url": "/Image_app_dev/",
+  "scope": "/Image_app_dev/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#28a745",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
