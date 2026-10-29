@@ -6,6 +6,7 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 
 - **Platform focus: Android.** Android saves through the Storage Access Framework; the web app uses browser-local IndexedDB storage, and iOS uses private internal storage (see below).
 - **Browser/PWA preview:** the same Expo app also exports to the web, with offline caching and browser-local batch storage. Android APK and AAB build options remain available.
+- **Collector details:** optional collector/team name, email address and organization can be entered with country/state and are included in each saved `batch.txt` and PWA batch download.
 - **Handoff integration preview:** includes environment/planting-system fields, image EXIF, and a per-image bounding-box editor. See [integration details and the saved metadata example](docs/desktop-handoff-integration.md).
 - **Fully local, no backend.** The app does not upload batches, images, or metadata to any server or cloud account. There is no login/account system.
 - **Capture flow**: Location → Parameters (botanical name, site, background, growth stage, soil color, lighting) → Image capture or manual selection → Review & Save, with a slide-in page transition between steps and a success screen (with a **Done** button that returns to the home screen) after saving.

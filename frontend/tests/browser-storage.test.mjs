@@ -8,6 +8,7 @@ const fixture = (id, savedAt = '2026-10-29T12:00:00Z') => ({
   locationCountry: 'United States', locationState: 'Texas', locationCity: null,
   botanicalName: 'Test specimen', weedBackground: 'Soil', growthStage: 'Seedling', soilColor: 'Brown',
   growingEnvironment: 'Field', plantingSystem: 'Soil',
+  collectorName: 'Sample Collector', collectorEmail: 'collector@example.org', organization: 'Example Organization',
   images: [{ id: 'photo-1', uri: 'data:image/png;base64,aW1hZ2UtYnl0ZXM=',
     fileName: 'specimen.png', width: 200, height: 100, mimeType: 'image/png', fileSizeBytes: 11,
     exif: { cameraModel: 'Test camera', latitude: 0, longitude: 0 },
@@ -22,6 +23,9 @@ test('photo bytes and metadata survive a fresh page module, and deletion persist
   assert.equal(saved.botanicalName, 'Test specimen');
   assert.equal(saved.growingEnvironment, 'Field');
   assert.equal(saved.plantingSystem, 'Soil');
+  assert.equal(saved.collectorName, 'Sample Collector');
+  assert.equal(saved.collectorEmail, 'collector@example.org');
+  assert.equal(saved.organization, 'Example Organization');
   assert.equal(saved.images[0].width, 200);
   assert.equal(saved.images[0].fileName, 'specimen.png');
   assert.deepEqual(saved.images[0].exif, { cameraModel: 'Test camera', latitude: 0, longitude: 0 });

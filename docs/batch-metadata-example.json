@@ -2,6 +2,11 @@
   "schema_version": 4,
   "batch_name": "field_batch",
   "saved_at": "2026-10-29T12:00:00Z",
+  "collector": {
+    "name": "Sample Collector",
+    "email": "collector@example.org",
+    "organization": "Example Organization"
+  },
   "location": {
     "country": "United States",
     "state": "Texas"

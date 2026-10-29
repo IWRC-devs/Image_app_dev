@@ -143,6 +143,9 @@ export function normalizeSavedBatch(
     id: batch?.id ?? fallbackId ?? null,
     name: batch?.name ?? batch?.batch_name ?? fallbackId ?? '',
     affiliationId: batch?.affiliation_id ?? batch?.affiliationId,
+    collectorName: batch?.collector?.name ?? batch?.collector_name ?? batch?.collectorName ?? null,
+    collectorEmail: batch?.collector?.email ?? batch?.collector_email ?? batch?.collectorEmail ?? null,
+    organization: batch?.collector?.organization ?? batch?.organization ?? null,
     locationCountry: location?.country ?? batch?.location_country ?? batch?.locationCountry ?? null,
     locationState: location?.state ?? batch?.location_state ?? batch?.locationState ?? null,
     locationCity: location?.city ?? batch?.location_city ?? batch?.locationCity ?? null,
@@ -215,6 +218,11 @@ export function toInternalMetadata(batch: StoredBatch, lightingOptions: { id: nu
     schema_version: 4,
     batch_name: batch.name,
     saved_at: batch.savedAt,
+    collector: compactObject({
+      name: batch.collectorName?.trim(),
+      email: batch.collectorEmail?.trim(),
+      organization: batch.organization?.trim(),
+    }),
     location: compactObject({
       country: batch.locationCountry,
       state: batch.locationState,

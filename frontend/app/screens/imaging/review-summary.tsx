@@ -141,6 +141,9 @@ export default function ReviewSummaryScreen() {
           <View style={styles.summaryBox}>
             {[
               { label: "Batch Name", value: batchData.name || formatBatchName() },
+              { label: "Collector / team", value: batchData.collectorName || 'Not provided' },
+              { label: "Email", value: batchData.collectorEmail || 'Not provided' },
+              { label: "Organization", value: batchData.organization || 'Not provided' },
               { label: "Location", value: locationText },
               { label: "Botanical name", value: batchData.botanicalName },
               { label: "Growing environment", value: batchData.growingEnvironment },

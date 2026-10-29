@@ -11,6 +11,7 @@ const box = { id: 'internal-box-uuid', classId: 0, className: 'Test specimen',
 const fixture = {
   id: 'internal-batch-uuid', name: 'field_batch', savedAt: '2026-10-29T12:00:00Z', synced: false,
   locationCountry: 'United States', locationState: 'Texas', locationCity: null,
+  collectorName: 'Sample Collector', collectorEmail: 'collector@example.org', organization: 'Example Organization',
   botanicalName: 'Test specimen', growingEnvironment: 'Greenhouse', plantingSystem: 'Pot',
   weedBackground: 'Crop', growthStage: 'Seedling', soilColor: 'Brown', lightingId: 1,
   images: [{ id: 'internal-image-uuid', uri: 'data:image/png;base64,aW1hZ2UtYnl0ZXM=', fileName: 'original.png',
@@ -27,9 +28,13 @@ test('clean metadata preserves parameters, EXIF and boxes through a saved-file r
   assert.equal(metadata.parameters.growing_environment, 'Greenhouse');
   assert.equal(metadata.parameters.planting_system, 'Pot');
   assert.equal(metadata.parameters.lighting, 'Sunny');
+  assert.deepEqual(metadata.collector, { name: 'Sample Collector', email: 'collector@example.org', organization: 'Example Organization' });
   assert.deepEqual(metadata.images['original.png'].exif.gps, { latitude: 0, longitude: 0 });
   const loaded = normalizeSavedBatch(metadata, 'batch-folder', { 'original.png': 'file:///original.png' }, lighting);
   assert.equal(loaded.id, 'batch-folder');
+  assert.equal(loaded.collectorName, 'Sample Collector');
+  assert.equal(loaded.collectorEmail, 'collector@example.org');
+  assert.equal(loaded.organization, 'Example Organization');
   assert.equal(loaded.images[0].uri, 'file:///original.png');
   assert.equal(loaded.images[0].annotations.length, 2);
   assert.equal(yoloLine(loaded.images[0].annotations[0]), '0 0.500000 0.400000 0.200000 0.400000');
@@ -41,6 +46,10 @@ test('previous flat schemas and unannotated photos still load', () => {
   assert.equal(loaded.plantingSystem, 'Pot');
   assert.equal(loaded.lightingId, 1);
   assert.deepEqual(loaded.images[0].annotations, []);
+  assert.equal(loaded.collectorName, null);
+  assert.equal(loaded.collectorEmail, null);
+  assert.equal(loaded.organization, null);
+  assert.deepEqual(toInternalMetadata(loaded, lighting).collector, {});
   assert.equal(normalizeSavedBatch({ weed_site: 'Field' }).growingEnvironment, 'Field');
 });
 
@@ -55,6 +64,7 @@ test('download contains image bytes, clean batch JSON, classes and per-image YOL
   const metadata = JSON.parse(strFromU8(files['batch.txt']));
   assert.equal(metadata.images['image_001.png'].annotations.length, 2);
   assert.equal(metadata.parameters.planting_system, 'Pot');
+  assert.deepEqual(metadata.collector, { name: 'Sample Collector', email: 'collector@example.org', organization: 'Example Organization' });
 });
 
 test('invalid boxes cannot become YOLO training labels', () => {

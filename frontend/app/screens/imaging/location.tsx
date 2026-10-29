@@ -4,6 +4,7 @@ import {
   View,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   ScrollView,
 } from "react-native";
@@ -29,6 +30,9 @@ export default function LocationScreen() {
 
   const [country, setCountry] = useState<string | null>(batchData?.locationCountry ?? null);
   const [state, setState] = useState<string | null>(batchData?.locationState ?? null);
+  const [collectorName, setCollectorName] = useState(batchData?.collectorName ?? '');
+  const [collectorEmail, setCollectorEmail] = useState(batchData?.collectorEmail ?? '');
+  const [organization, setOrganization] = useState(batchData?.organization ?? '');
 
   const stateOptions = useMemo(() => {
     if (!country) return [];
@@ -55,10 +59,19 @@ export default function LocationScreen() {
       return;
     }
 
+    const email = collectorEmail.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showAlert('Check email address', 'Enter a valid email address, or leave this optional field blank.');
+      return;
+    }
+
     const baseBatch: BatchData = batchData ?? createNewBatch();
 
     const nextBatch: BatchData = {
       ...baseBatch,
+      collectorName: collectorName.trim() || null,
+      collectorEmail: email || null,
+      organization: organization.trim() || null,
       locationCountry: country,
       locationState: state,
       locationCity: null,
@@ -86,7 +99,44 @@ export default function LocationScreen() {
 
   return (
     <PageTransition>
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <Text style={[styles.label, styles.detailLabel]}>Collector / team name (optional)</Text>
+      <TextInput
+        accessibilityLabel="Collector or team name"
+        placeholder="Person or team collecting the images"
+        placeholderTextColor="#666"
+        value={collectorName}
+        onChangeText={setCollectorName}
+        autoComplete="name"
+        autoCapitalize="words"
+        style={styles.input}
+      />
+
+      <Text style={[styles.label, styles.detailLabel]}>Email address (optional)</Text>
+      <TextInput
+        accessibilityLabel="Collector email address"
+        placeholder="name@example.org"
+        placeholderTextColor="#666"
+        value={collectorEmail}
+        onChangeText={setCollectorEmail}
+        autoComplete="email"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={styles.input}
+      />
+
+      <Text style={[styles.label, styles.detailLabel]}>Organization (optional)</Text>
+      <TextInput
+        accessibilityLabel="Organization"
+        placeholder="Organization name"
+        placeholderTextColor="#666"
+        value={organization}
+        onChangeText={setOrganization}
+        autoCapitalize="words"
+        style={styles.input}
+      />
+
       <Text style={styles.label}>Country</Text>
       <View style={styles.pickerBox}>
         <Picker
@@ -152,6 +202,19 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     marginBottom: 12,
     overflow: "hidden",
+  },
+  detailLabel: {
+    fontSize: 20,
+  },
+  input: {
+    backgroundColor: '#f0f0f0',
+    color: '#000',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    minHeight: 52,
+    fontSize: 16,
+    marginBottom: 12,
   },
   picker: {
     color: "#000",

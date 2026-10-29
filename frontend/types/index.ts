@@ -35,7 +35,13 @@ export interface ImageItem {
   annotations?: BoundingBoxAnnotation[];
 }
 
-export interface StoredBatch {
+export interface CollectorDetails {
+  collectorName?: string | null;
+  collectorEmail?: string | null;
+  organization?: string | null;
+}
+
+export interface StoredBatch extends CollectorDetails {
   id: string | null;
   name: string;
   affiliationId?: number;
