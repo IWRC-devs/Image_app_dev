@@ -8,6 +8,10 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "build:web": "node ./scripts/build-web.mjs",
+    "test:web": "node --test tests/browser-storage.test.mjs",
+    "test:pwa": "node --test tests/pwa-export.test.mjs",
+    "publish:web": "node ./scripts/publish-web.mjs",
     "lint": "expo lint"
   },
   "dependencies": {
@@ -49,6 +53,7 @@
     "@types/react": "~19.1.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
+    "fake-indexeddb": "^6.2.6",
     "typescript": "~5.9.2"
   },
   "private": true

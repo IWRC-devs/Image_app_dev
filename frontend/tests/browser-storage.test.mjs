@@ -1,0 +1,45 @@
+import 'fake-indexeddb/auto';
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { saveBatch, getSavedBatches, deleteBatch } from '../utils/batchStore.web.ts';
+
+const fixture = (id, savedAt = '2026-10-29T12:00:00Z') => ({
+  id, name: id, savedAt, synced: false,
+  locationCountry: 'United States', locationState: 'Texas', locationCity: null,
+  botanicalName: 'Test specimen', weedBackground: 'Soil', growthStage: 'Seedling', soilColor: 'Brown',
+  images: [{ id: 'photo-1', uri: 'data:image/png;base64,aW1hZ2UtYnl0ZXM=' }],
+});
+
+test('photo bytes and metadata survive a fresh page module, and deletion persists', async () => {
+  await saveBatch(fixture('durable-batch'));
+  const freshPage = await import(`../utils/batchStore.web.ts?reload=${Date.now()}`);
+  const [saved] = await freshPage.getSavedBatches();
+  assert.equal(saved.name, 'durable-batch');
+  assert.equal(saved.botanicalName, 'Test specimen');
+  assert.equal(await (await fetch(saved.images[0].uri)).text(), 'image-bytes');
+  await freshPage.deleteBatch('durable-batch');
+  assert.deepEqual(await getSavedBatches(), []);
+});
+
+test('unreadable replacement photos do not destroy a previously saved batch', async () => {
+  await saveBatch(fixture('existing-batch'));
+  await assert.rejects(saveBatch({
+    ...fixture('existing-batch'), name: 'Replacement',
+    images: [{ id: 'broken', uri: 'blob:missing-photo' }],
+  }));
+  const [saved] = await getSavedBatches();
+  assert.equal(saved.name, 'existing-batch');
+  assert.equal(await (await fetch(saved.images[0].uri)).text(), 'image-bytes');
+  await deleteBatch('existing-batch');
+});
+
+test('batches sort newest first and replacement does not create a duplicate', async () => {
+  await saveBatch(fixture('older', '2026-10-28T12:00:00Z'));
+  await saveBatch(fixture('newer', '2026-10-29T12:00:00Z'));
+  await saveBatch({ ...fixture('older', '2026-10-28T12:00:00Z'), name: 'Updated' });
+  const batches = await getSavedBatches();
+  assert.deepEqual(batches.map((batch) => batch.id), ['newer', 'older']);
+  assert.equal(batches[1].name, 'Updated');
+  await deleteBatch('older');
+  await deleteBatch('newer');
+});

@@ -4,7 +4,8 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 
 ## Current status
 
-- **Platform focus: Android.** The save flow depends on Android's Storage Access Framework; iOS and web fall back to the app's private internal storage (see below) but are not the actively tested target.
+- **Platform focus: Android.** Android saves through the Storage Access Framework; the web app uses browser-local IndexedDB storage, and iOS uses private internal storage (see below).
+- **Browser/PWA preview:** the same Expo app also exports to the web, with offline caching and browser-local batch storage. Android APK and AAB build options remain available.
 - **Fully local, no backend.** The app does not upload batches, images, or metadata to any server or cloud account. There is no login/account system.
 - **Capture flow**: Location → Parameters (botanical name, site, background, growth stage, soil color, lighting) → Image capture or manual selection → Review & Save, with a slide-in page transition between steps and a success screen (with a **Done** button that returns to the home screen) after saving.
 - **Saved Batches screen**: lists previously saved batches on-device and allows deleting them.
@@ -19,11 +20,31 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 
 The chosen folder is remembered after the first save, so the picker only appears once per device.
 
-**On iOS/web**, batches are saved instead to the app's private internal document storage (not visible in a file manager), since the Storage Access Framework is Android-only.
+**In the browser/PWA**, photos and metadata are saved to IndexedDB on the current browser and device. They survive closing and reopening the page, but clearing this site's browser data removes them. They are not synchronized across browsers, devices, or the Android app. Private browsing may restrict storage. On phones, the camera option uses the browser's supported camera/file picker; desktops can select image files.
+
+**On iOS**, batches are saved instead to the app's private internal document storage (not visible in a file manager), since the Storage Access Framework is Android-only.
 
 Uninstalling the app removes its private internal batches. Batches saved to a user-selected Android folder (the normal path) are untouched by uninstalling, since they live outside the app's private storage.
 
 ## Get started
+
+### Open or build the PWA
+
+Open [IWRC Imaging in your browser](https://iwrc-devs.github.io/Image_app_dev/). Installation is optional: use it as a normal website, or use your browser's Install/Add to Home Screen option. Offline use becomes available after the first online visit finishes caching the app. Updates activate after all existing app tabs are closed and the app is reopened online.
+
+To export the same app for GitHub Pages from PowerShell:
+
+```powershell
+cd frontend
+$env:EXPO_PUBLIC_BASE_PATH = '/Image_app_dev'
+npm run build:web
+```
+
+For hosting at a domain's root, omit `EXPO_PUBLIC_BASE_PATH`. The export is in `frontend/dist`. The PWA manifest and versioned service worker are generated during the build. To publish to the repository's existing `gh_pages` branch, run `npm run publish:web` after committing the source and rebuilding it. This requires Git push access; it preserves existing branch files and does not force-push. GitHub Pages then builds the published branch.
+
+`npm run test:web` checks browser storage persistence using an IndexedDB implementation for Node (Node 22.18+ or 24+). No phone or app installation is needed.
+
+### Android development and APK builds
 
 1. Install dependencies
 

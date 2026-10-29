@@ -6,12 +6,12 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Alert,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { PageTransition } from "@/components/PageTransition";
 import { type BatchData, createNewBatch, useBatch } from "../../context/BatchContext";
 import { saveBatch } from "@/utils/batchStore";
+import { showAlert } from "@/utils/alerts";
 
 const LOCATION_DATA = (require("@/assets/data/locations.json") as {
   name: string;
@@ -51,7 +51,7 @@ export default function LocationScreen() {
 
   const handleContinue = async () => {
     if (!country || !state) {
-      Alert.alert("Please complete location selection");
+      showAlert("Please complete location selection");
       return;
     }
 

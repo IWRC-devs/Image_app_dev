@@ -1,7 +1,8 @@
 import { PageTransition } from "@/components/PageTransition";
 import { ThemedText } from "@/components/ThemedText";
 import { useRouter } from "expo-router";
-import { View, StyleSheet, TouchableOpacity, Image, Alert, useColorScheme } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Image, useColorScheme } from "react-native";
+import { showAlert } from "@/utils/alerts";
 import { Button } from "react-native-paper";
 import * as ImagePicker from 'expo-image-picker';
 import { useBatch } from "../../context/BatchContext";
@@ -45,7 +46,7 @@ export default function ImageSelectionScreen() {
   // Continue to next screen
   const handleContinue = () => {
     if (selectedImages.length === 0) {
-      Alert.alert("Please select at least one image.");
+      showAlert("Please select at least one image.");
       return;
     }
     // Navigate to next screen

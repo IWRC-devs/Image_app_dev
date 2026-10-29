@@ -6,7 +6,7 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
-  Alert,
+  Platform,
   useColorScheme,
   ActivityIndicator,
 } from "react-native";
@@ -17,6 +17,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { createNewBatch, formatBatchName, useBatch } from "../../context/BatchContext";
 import { Ionicons } from "@expo/vector-icons";
 import { saveBatch } from "@/utils/batchStore";
+import { showAlert } from "@/utils/alerts";
 
 export default function ReviewSummaryScreen() {
   const router = useRouter();
@@ -54,12 +55,12 @@ export default function ReviewSummaryScreen() {
     ];
 
     if (requiredFields.some((f) => !f)) {
-      Alert.alert("Validation Error", "Please fill in all required fields.");
+      showAlert("Validation Error", "Please fill in all required fields.");
       return false;
     }
 
     if (selectedImages.length === 0) {
-      Alert.alert("Validation Error", "Please add at least one image.");
+      showAlert("Validation Error", "Please add at least one image.");
       return false;
     }
 
@@ -83,7 +84,7 @@ export default function ReviewSummaryScreen() {
       setSavedImageCount(savedBatch.images.length);
     } catch (err) {
       console.error("Save error:", err);
-      Alert.alert(
+      showAlert(
         "Save Failed",
         err instanceof Error ? err.message : "Unable to save batch."
       );
@@ -112,7 +113,9 @@ export default function ReviewSummaryScreen() {
       <SuccessOverlay
         visible={savedImageCount !== null}
         title="Batch saved!"
-        message={`${savedImageCount ?? 0} image${savedImageCount === 1 ? "" : "s"} and the batch details were saved to the "IWRC imaging" folder on this device.`}
+        message={Platform.OS === 'web'
+          ? `${savedImageCount ?? 0} image${savedImageCount === 1 ? "" : "s"} and the batch details were saved in this browser on this device. Clearing this site's browser data removes saved batches.`
+          : `${savedImageCount ?? 0} image${savedImageCount === 1 ? "" : "s"} and the batch details were saved to the "IWRC imaging" folder on this device.`}
         onDone={handleSuccessDone}
       />
       <View style={{ flex: 1 }}>

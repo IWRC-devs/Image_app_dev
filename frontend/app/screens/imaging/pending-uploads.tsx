@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { showAlert } from '@/utils/alerts';
 
 import { PageTransition } from '@/components/PageTransition';
 import { ThemedText } from '@/components/ThemedText';
@@ -19,7 +20,7 @@ export default function SavedBatchesScreen() {
       setBatches(await getSavedBatches());
     } catch (error) {
       console.error('Unable to read saved batches:', error);
-      Alert.alert('Unable to load', 'The batches stored on this device could not be read.');
+      showAlert('Unable to load', 'The batches stored on this device could not be read.');
     } finally {
       setLoading(false);
     }
@@ -32,7 +33,7 @@ export default function SavedBatchesScreen() {
   );
 
   const handleDelete = (batch: StoredBatch) => {
-    Alert.alert(
+    showAlert(
       'Delete local batch?',
       `This permanently removes ${batch.images.length} images and the batch details from this device.`,
       [
@@ -56,8 +57,9 @@ export default function SavedBatchesScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent}>
         <ThemedText style={styles.heading}>Saved Batches</ThemedText>
         <ThemedText style={styles.privacyNote}>
-          Saved to the &quot;IWRC imaging&quot; folder you selected on this device. Nothing is
-          uploaded to a server or cloud account.
+          {Platform.OS === 'web'
+            ? "Saved in this browser on this device. Clearing this site's browser data removes saved batches. Nothing is uploaded."
+            : 'Saved to the "IWRC imaging" folder you selected on this device. Nothing is uploaded to a server or cloud account.'}
         </ThemedText>
 
         {loading ? (

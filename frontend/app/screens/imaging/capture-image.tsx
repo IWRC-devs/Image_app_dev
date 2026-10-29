@@ -1,7 +1,8 @@
 import { PageTransition } from "@/components/PageTransition";
 import { ThemedText } from "@/components/ThemedText";
 import { useRouter } from "expo-router";
-import { SafeAreaView, ScrollView, View, StyleSheet, TouchableOpacity, Image, Alert } from "react-native";
+import { SafeAreaView, ScrollView, View, StyleSheet, TouchableOpacity, Image, Platform } from "react-native";
+import { showAlert } from "@/utils/alerts";
 import { Button } from "react-native-paper";
 import uuid from 'react-native-uuid';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,8 +18,10 @@ export default function CaptureImageScreen() {
 
   // Capture from camera
   const handleCapture = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) return;
+    if (Platform.OS !== 'web') {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) return;
+    }
 
     const result = await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.7 });
     if (!result.canceled && result.assets.length > 0) {
@@ -45,7 +48,7 @@ export default function CaptureImageScreen() {
   // Continue to next screen
   const handleContinue = () => {
     if (capturedImages.length === 0) {
-      Alert.alert("Please capture at least one image.");
+      showAlert("Please capture at least one image.");
       return;
     }
 
