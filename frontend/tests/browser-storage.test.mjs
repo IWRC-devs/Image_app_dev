@@ -10,7 +10,8 @@ const fixture = (id, savedAt = '2026-10-29T12:00:00Z') => ({
   growingEnvironment: 'Field', plantingSystem: 'Soil',
   images: [{ id: 'photo-1', uri: 'data:image/png;base64,aW1hZ2UtYnl0ZXM=',
     fileName: 'specimen.png', width: 200, height: 100, mimeType: 'image/png', fileSizeBytes: 11,
-    exif: { cameraModel: 'Test camera', latitude: 0, longitude: 0 } }],
+    exif: { cameraModel: 'Test camera', latitude: 0, longitude: 0 },
+    annotations: [{ id: 'box-1', classId: 0, xCenter: 0.5, yCenter: 0.5, width: 0.4, height: 0.2 }] }],
 });
 
 test('photo bytes and metadata survive a fresh page module, and deletion persists', async () => {
@@ -24,6 +25,7 @@ test('photo bytes and metadata survive a fresh page module, and deletion persist
   assert.equal(saved.images[0].width, 200);
   assert.equal(saved.images[0].fileName, 'specimen.png');
   assert.deepEqual(saved.images[0].exif, { cameraModel: 'Test camera', latitude: 0, longitude: 0 });
+  assert.deepEqual(saved.images[0].annotations, fixture('durable-batch').images[0].annotations);
   assert.equal(await (await fetch(saved.images[0].uri)).text(), 'image-bytes');
   await freshPage.deleteBatch('durable-batch');
   assert.deepEqual(await getSavedBatches(), []);
@@ -50,4 +52,24 @@ test('batches sort newest first and replacement does not create a duplicate', as
   assert.equal(batches[1].name, 'Updated');
   await deleteBatch('older');
   await deleteBatch('newer');
+});
+
+test('browser batches saved before the handoff keep their photos and load without boxes', async () => {
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open('iwrc-imaging', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  await new Promise((resolve, reject) => {
+    const transaction = db.transaction('batches', 'readwrite');
+    transaction.objectStore('batches').put({ ...fixture('legacy-browser'),
+      images: [{ id: 'old-photo', blob: new Blob(['old-photo-bytes'], { type: 'image/jpeg' }) }] });
+    transaction.oncomplete = resolve;
+    transaction.onabort = () => reject(transaction.error);
+  });
+  db.close();
+  const [saved] = await getSavedBatches();
+  assert.deepEqual(saved.images[0].annotations, []);
+  assert.equal(await (await fetch(saved.images[0].uri)).text(), 'old-photo-bytes');
+  await deleteBatch('legacy-browser');
 });

@@ -1,0 +1,35 @@
+{
+  "schema_version": 4,
+  "batch_name": "field_batch",
+  "saved_at": "2026-10-29T12:00:00Z",
+  "location": {
+    "country": "United States",
+    "state": "Texas"
+  },
+  "parameters": {
+    "botanical_name": "Test specimen",
+    "growing_environment": "Greenhouse",
+    "planting_system": "Pot",
+    "background": "Crop",
+    "growth_stage": "Seedling",
+    "soil_color": "Brown",
+    "lighting": "Sunny"
+  },
+  "images": {
+    "image_001.png": {
+      "resolution": { "width": 200, "height": 100 },
+      "orientation": "landscape",
+      "mime_type": "image/png",
+      "file_size_bytes": 11,
+      "exif": { "camera_make": "Test", "camera_model": "Camera" },
+      "annotations": [
+        {
+          "class_name": "Test specimen",
+          "bbox_yolo": { "x_center": 0.5, "y_center": 0.4, "width": 0.2, "height": 0.4 }
+        }
+      ]
+    }
+  },
+  "annotation_format": "YOLO normalized (class_id x_center y_center width height)",
+  "classes": ["Test specimen"]
+}

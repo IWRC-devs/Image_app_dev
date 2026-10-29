@@ -12,6 +12,17 @@ export interface ImageExifMetadata {
   altitudeMeters?: number;
 }
 
+export interface BoundingBoxAnnotation {
+  id: string;
+  classId: number;
+  className?: string;
+  /** Coordinates and dimensions normalized to the image (0-1). */
+  xCenter: number;
+  yCenter: number;
+  width: number;
+  height: number;
+}
+
 export interface ImageItem {
   id: string;
   uri: string;
@@ -21,6 +32,7 @@ export interface ImageItem {
   mimeType?: string | null;
   fileSizeBytes?: number;
   exif?: ImageExifMetadata;
+  annotations?: BoundingBoxAnnotation[];
 }
 
 export interface StoredBatch {

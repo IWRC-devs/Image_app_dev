@@ -1,7 +1,7 @@
-import * as ImagePicker from "expo-image-picker";
+import type * as ImagePicker from "expo-image-picker";
 import uuid from "react-native-uuid";
 
-import { ImageExifMetadata, ImageItem } from "@/types";
+import type { ImageExifMetadata, ImageItem } from "@/types";
 
 function firstDefined(exif: Record<string, any>, keys: string[]) {
   for (const key of keys) {
@@ -62,18 +62,22 @@ export function normalizeExif(rawExif?: Record<string, any> | null): ImageExifMe
   );
 
   const metadata: ImageExifMetadata = {
-    capturedAt: firstDefined(rawExif, ["DateTimeOriginal", "DateTimeDigitized", "DateTime"]),
+    capturedAt: firstDefined(rawExif, ["DateTimeOriginal", "DateTimeDigitized", "CreateDate", "DateTime", "ModifyDate"]),
     cameraMake: firstDefined(rawExif, ["Make", "make"]),
     cameraModel: firstDefined(rawExif, ["Model", "model"]),
     lensModel: firstDefined(rawExif, ["LensModel", "lensModel"]),
     exposureTime: firstDefined(rawExif, ["ExposureTime", "exposureTime"]),
-    fNumber: firstDefined(rawExif, ["FNumber", "fNumber", "ApertureValue"]),
+    fNumber: firstDefined(rawExif, ["FNumber", "fNumber"]),
     iso: firstDefined(rawExif, ["PhotographicSensitivity", "ISOSpeedRatings", "ISO"]),
     focalLengthMm: firstDefined(rawExif, ["FocalLength", "focalLength"]),
     latitude,
     longitude,
     altitudeMeters: rationalNumber(firstDefined(rawExif, ["GPSAltitude", "gpsAltitude", "altitude"])),
   };
+
+  if (metadata.altitudeMeters !== undefined && Number(rawExif.GPSAltitudeRef) === 1) {
+    metadata.altitudeMeters = -Math.abs(metadata.altitudeMeters);
+  }
 
   const hasMetadata = Object.values(metadata).some(
     (value) => value !== undefined && value !== null && value !== ""
@@ -91,5 +95,6 @@ export function imageItemFromPickerAsset(asset: ImagePicker.ImagePickerAsset): I
     mimeType: asset.mimeType,
     fileSizeBytes: asset.fileSize,
     exif: normalizeExif(asset.exif),
+    annotations: [],
   };
 }

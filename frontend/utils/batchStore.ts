@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 
-import { ImageExifMetadata, ImageItem, StoredBatch } from '@/types';
+import type { ImageItem, StoredBatch } from '@/types';
+import { batchClasses, imageExtension, imageMimeType, labelFileName, normalizeSavedBatch as normalizeBatch, toInternalMetadata as serializeBatch, yoloLine } from '@/utils/batchMetadata';
 
 const BATCHES_DIR = `${FileSystem.documentDirectory}batches/`;
 const METADATA_FILE_NAME = 'batch.txt';
@@ -27,191 +28,13 @@ function safePathSegment(value: string) {
   return value.replace(/[\\/:*?"<>|]/g, '_');
 }
 
-function getLightingNameById(lightingId?: number | null) {
-  if (lightingId == null) return '';
-  return LIGHTING_OPTIONS.find((option) => option.id === lightingId)?.name ?? '';
-}
+const normalizeSavedBatch = (batch: unknown, fallbackId?: string, imageUrisByName: Record<string, string> = {}) =>
+  normalizeBatch(batch, fallbackId, imageUrisByName, LIGHTING_OPTIONS);
+const toInternalMetadata = (batch: StoredBatch) => serializeBatch(batch, LIGHTING_OPTIONS);
 
-function displayName(value: string) {
-  return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
-}
-
-function imageExtension(uri: string) {
-  const cleanUri = uri.split('?')[0];
-  const extension = cleanUri.includes('.') ? cleanUri.split('.').pop()?.toLowerCase() : undefined;
-  return extension && ['jpg', 'jpeg', 'png', 'tif', 'tiff', 'heic', 'webp'].includes(extension)
-    ? extension
-    : 'jpg';
-}
-
-function imageMimeType(fileName: string) {
-  const extension = fileName.split('.').pop()?.toLowerCase();
-  if (extension === 'png') return 'image/png';
-  if (extension === 'tif' || extension === 'tiff') return 'image/tiff';
-  if (extension === 'heic') return 'image/heic';
-  if (extension === 'webp') return 'image/webp';
-  return 'image/jpeg';
-}
-
-function imageOrientation(width?: number, height?: number) {
-  if (!width || !height) return undefined;
-  if (width === height) return 'square';
-  return width > height ? 'landscape' : 'portrait';
-}
-
-function compactObject(values: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(values).filter(([, value]) => {
-      if (value === undefined || value === null || value === '') return false;
-      if (typeof value === 'object' && !Array.isArray(value)) {
-        return Object.keys(value as Record<string, unknown>).length > 0;
-      }
-      return true;
-    })
-  );
-}
-
-function serializeExif(exif?: ImageExifMetadata) {
-  if (!exif) return undefined;
-
-  const gps = compactObject({
-    latitude: exif.latitude,
-    longitude: exif.longitude,
-    altitude_meters: exif.altitudeMeters,
-  });
-
-  const serialized = compactObject({
-    captured_at: exif.capturedAt,
-    camera_make: exif.cameraMake,
-    camera_model: exif.cameraModel,
-    lens_model: exif.lensModel,
-    exposure_time: exif.exposureTime,
-    f_number: exif.fNumber,
-    iso: exif.iso,
-    focal_length_mm: exif.focalLengthMm,
-    gps,
-  });
-
-  return Object.keys(serialized).length > 0 ? serialized : undefined;
-}
-
-function normalizeExif(exif: any): ImageExifMetadata | undefined {
-  if (!exif) return undefined;
-  const normalized = compactObject({
-    capturedAt: exif.captured_at ?? exif.capturedAt,
-    cameraMake: exif.camera_make ?? exif.cameraMake,
-    cameraModel: exif.camera_model ?? exif.cameraModel,
-    lensModel: exif.lens_model ?? exif.lensModel,
-    exposureTime: exif.exposure_time ?? exif.exposureTime,
-    fNumber: exif.f_number ?? exif.fNumber,
-    iso: exif.iso,
-    focalLengthMm: exif.focal_length_mm ?? exif.focalLengthMm,
-    latitude: exif.gps?.latitude ?? exif.latitude,
-    longitude: exif.gps?.longitude ?? exif.longitude,
-    altitudeMeters: exif.gps?.altitude_meters ?? exif.altitudeMeters,
-  }) as ImageExifMetadata;
-  return Object.keys(normalized).length > 0 ? normalized : undefined;
-}
-
-function normalizeSavedBatch(
-  batch: any,
-  fallbackId?: string,
-  imageUrisByName: Record<string, string> = {}
-): StoredBatch {
-  const parameters = batch?.parameters ?? batch ?? {};
-  const location = batch?.location ?? batch ?? {};
-  const legacyWeedSite = batch?.weed_site ?? batch?.weedSite ?? null;
-  const lightingName = parameters?.lighting ?? batch?.lighting;
-  const lightingId =
-    typeof lightingName === 'string'
-      ? LIGHTING_OPTIONS.find((option) => option.name.toLowerCase() === lightingName.toLowerCase())?.id
-      : batch?.lighting_id ?? batch?.lightingId ?? undefined;
-  const rawImages = Array.isArray(batch?.images)
-    ? batch.images
-    : Object.entries(batch?.images ?? {}).map(([fileName, metadata]) => ({
-        ...(metadata as Record<string, unknown>),
-        file_name: fileName,
-      }));
-
-  return {
-    id: batch?.id ?? fallbackId ?? null,
-    name: batch?.name ?? batch?.batch_name ?? fallbackId ?? '',
-    affiliationId: batch?.affiliation_id ?? batch?.affiliationId,
-    locationCountry: location?.country ?? batch?.location_country ?? batch?.locationCountry ?? null,
-    locationState: location?.state ?? batch?.location_state ?? batch?.locationState ?? null,
-    locationCity: location?.city ?? batch?.location_city ?? batch?.locationCity ?? null,
-    botanicalName: parameters?.botanical_name ?? batch?.botanical_name ?? batch?.botanicalName ?? null,
-    weedBackground: parameters?.background ?? batch?.weed_background ?? batch?.weedBackground ?? null,
-    growingEnvironment:
-      parameters?.growing_environment ??
-      batch?.growing_environment ??
-      batch?.growingEnvironment ??
-      (legacyWeedSite === 'Field' || legacyWeedSite === 'Greenhouse' ? legacyWeedSite : null),
-    plantingSystem:
-      parameters?.planting_system ??
-      batch?.planting_system ??
-      batch?.plantingSystem ??
-      (legacyWeedSite === 'Pot' ? 'Pot' : null),
-    weedSite: legacyWeedSite,
-    growthStage: parameters?.growth_stage ?? batch?.growth_stage ?? batch?.growthStage ?? null,
-    soilColor: parameters?.soil_color ?? batch?.soil_color ?? batch?.soilColor ?? null,
-    lightingId,
-    images: rawImages
-      .map((image: any, index: number) => ({
-        id: image?.id ?? `${index}`,
-        uri: image?.uri ?? imageUrisByName[image?.file_name ?? image?.fileName] ?? '',
-        fileName: image?.file_name ?? image?.fileName ?? null,
-        width: image?.resolution?.width ?? image?.width,
-        height: image?.resolution?.height ?? image?.height,
-        mimeType: image?.mime_type ?? image?.mimeType ?? null,
-        fileSizeBytes: image?.file_size_bytes ?? image?.fileSizeBytes,
-        exif: normalizeExif(image?.exif),
-      }))
-      .filter((image: ImageItem) => Boolean(image.uri)),
-    selectedOption: batch?.selected_option ?? batch?.selectedOption,
-    synced: false,
-    savedAt: batch?.saved_at ?? batch?.savedAt ?? new Date().toISOString(),
-  };
-}
-
-function toInternalMetadata(batch: StoredBatch) {
-  const images = Object.fromEntries(
-    batch.images.map((image, index) => {
-      const fileName = image.fileName ?? `image_${String(index + 1).padStart(3, '0')}.${imageExtension(image.uri)}`;
-      const resolution = compactObject({ width: image.width, height: image.height });
-      return [
-        fileName,
-        compactObject({
-          resolution,
-          orientation: imageOrientation(image.width, image.height),
-          mime_type: image.mimeType,
-          file_size_bytes: image.fileSizeBytes,
-          exif: serializeExif(image.exif),
-        }),
-      ];
-    })
-  );
-
-  return {
-    schema_version: 3,
-    batch_name: batch.name,
-    saved_at: batch.savedAt,
-    location: compactObject({
-      country: batch.locationCountry,
-      state: batch.locationState,
-      city: batch.locationCity,
-    }),
-    parameters: compactObject({
-      botanical_name: batch.botanicalName,
-      growing_environment: batch.growingEnvironment,
-      planting_system: batch.plantingSystem,
-      background: batch.weedBackground,
-      growth_stage: batch.growthStage,
-      soil_color: batch.soilColor,
-      lighting: displayName(getLightingNameById(batch.lightingId)),
-    }),
-    images,
-  };
+async function writeSafTextFile(directoryUri: string, fileName: string, content: string) {
+  const uri = await FileSystem.StorageAccessFramework.createFileAsync(directoryUri, fileName, 'text/plain');
+  await FileSystem.writeAsStringAsync(uri, content);
 }
 
 /** Finds a direct child of a SAF directory by its display name, or null if absent. */
@@ -263,6 +86,8 @@ async function getRootDirectoryUri(promptIfMissing: boolean): Promise<string | n
 }
 
 async function saveBatchToDeviceFolder(batch: StoredBatch): Promise<StoredBatch> {
+  // Validate all annotations before touching an existing batch on disk.
+  const classes = batchClasses(batch);
   const rootUri = await getRootDirectoryUri(true);
   if (!rootUri) {
     throw new Error('Folder permission was not granted.');
@@ -294,6 +119,7 @@ async function saveBatchToDeviceFolder(batch: StoredBatch): Promise<StoredBatch>
       encoding: FileSystem.EncodingType.Base64,
     });
     permanentImages.push({ ...image, uri: imageUri, fileName });
+    await writeSafTextFile(batchUri, labelFileName(fileName), (image.annotations ?? []).map(yoloLine).join('\n'));
   }
 
   const storedBatch: StoredBatch = {
@@ -314,6 +140,7 @@ async function saveBatchToDeviceFolder(batch: StoredBatch): Promise<StoredBatch>
     jsonUri,
     JSON.stringify(toInternalMetadata(storedBatch), null, 2)
   );
+  await writeSafTextFile(batchUri, 'classes.txt', classes.join('\n'));
 
   return storedBatch;
 }
@@ -359,6 +186,7 @@ async function deleteBatchFromDeviceFolder(id: string) {
 }
 
 async function saveBatchInternal(batch: StoredBatch): Promise<StoredBatch> {
+  const classes = batchClasses(batch);
   await ensureDirectory(BATCHES_DIR);
   const id = safePathSegment(batch.id || `batch-${Date.now()}`);
   const batchDirectory = `${BATCHES_DIR}${id}/`;
@@ -373,6 +201,7 @@ async function saveBatchInternal(batch: StoredBatch): Promise<StoredBatch> {
       await FileSystem.copyAsync({ from: image.uri, to: destination });
     }
     permanentImages.push({ ...image, uri: destination, fileName });
+    await FileSystem.writeAsStringAsync(`${imagesDirectory}${labelFileName(fileName)}`, (image.annotations ?? []).map(yoloLine).join('\n'));
   }
 
   const storedBatch: StoredBatch = {
@@ -384,6 +213,7 @@ async function saveBatchInternal(batch: StoredBatch): Promise<StoredBatch> {
     savedAt: batch.savedAt || new Date().toISOString(),
   };
   const metadataPath = `${batchDirectory}${METADATA_FILE_NAME}`;
+  await FileSystem.writeAsStringAsync(`${imagesDirectory}classes.txt`, classes.join('\n'));
   await FileSystem.writeAsStringAsync(
     metadataPath,
     JSON.stringify(toInternalMetadata(storedBatch), null, 2)

@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { showAlert } from '@/utils/alerts';
+import { BatchDownloadButton } from '@/components/BatchDownloadButton';
 
 import { PageTransition } from '@/components/PageTransition';
 import { ThemedText } from '@/components/ThemedText';
@@ -83,6 +84,7 @@ export default function SavedBatchesScreen() {
               </View>
 
               <View style={styles.actions}>
+                <BatchDownloadButton batch={batch} />
                 <TouchableOpacity
                   accessibilityLabel={`Delete ${batch.name}`}
                   onPress={() => handleDelete(batch)}

@@ -6,6 +6,7 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 
 - **Platform focus: Android.** Android saves through the Storage Access Framework; the web app uses browser-local IndexedDB storage, and iOS uses private internal storage (see below).
 - **Browser/PWA preview:** the same Expo app also exports to the web, with offline caching and browser-local batch storage. Android APK and AAB build options remain available.
+- **Handoff integration preview:** includes environment/planting-system fields, image EXIF, and a per-image bounding-box editor. See [integration details and the saved metadata example](docs/desktop-handoff-integration.md).
 - **Fully local, no backend.** The app does not upload batches, images, or metadata to any server or cloud account. There is no login/account system.
 - **Capture flow**: Location → Parameters (botanical name, site, background, growth stage, soil color, lighting) → Image capture or manual selection → Review & Save, with a slide-in page transition between steps and a success screen (with a **Done** button that returns to the home screen) after saving.
 - **Saved Batches screen**: lists previously saved batches on-device and allows deleting them.
@@ -17,10 +18,13 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 
 - `image_001.jpg`, `image_002.jpg`, … — the captured/selected photos
 - `batch.txt` — the batch metadata (location, plant/site parameters, lighting, image list), written as indented JSON but saved with a `.txt` extension so it opens directly in any text viewer without a JSON-aware app
+- `image_001.txt`, `image_002.txt`, … — matching YOLO labels for each image, plus `classes.txt` naming the classes. Images without boxes have an empty label file.
 
 The chosen folder is remembered after the first save, so the picker only appears once per device.
 
 **In the browser/PWA**, photos and metadata are saved to IndexedDB on the current browser and device. They survive closing and reopening the page, but clearing this site's browser data removes them. They are not synchronized across browsers, devices, or the Android app. Private browsing may restrict storage. On phones, the camera option uses the browser's supported camera/file picker; desktops can select image files.
+
+Use the download icon on a Saved Batch to export its photos, readable metadata and YOLO labels as a ZIP. Tap photos while capturing, selecting or reviewing to add, move or resize bounding boxes. Selected EXIF and embedded GPS are included when available in the source photo; metadata is read locally.
 
 **On iOS**, batches are saved instead to the app's private internal document storage (not visible in a file manager), since the Storage Access Framework is Android-only.
 

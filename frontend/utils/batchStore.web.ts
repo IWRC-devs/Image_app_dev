@@ -1,4 +1,5 @@
 import type { ImageItem, StoredBatch } from '@/types';
+import { batchClasses } from './batchMetadata.ts';
 
 type BrowserBatch = Omit<StoredBatch, 'images'> & {
   images: (Omit<ImageItem, 'uri'> & { blob: Blob })[];
@@ -46,6 +47,7 @@ async function writeBatch(batch: BrowserBatch | string) {
 }
 
 export async function saveBatch(batch: StoredBatch): Promise<StoredBatch> {
+  batchClasses(batch);
   const images: BrowserBatch['images'] = [];
   for (const image of batch.images) {
     const { uri, ...metadata } = image;
@@ -84,7 +86,7 @@ export async function getSavedBatches(): Promise<StoredBatch[]> {
         const { blob, ...metadata } = image;
         const uri = URL.createObjectURL(blob);
         imageUrls.set(`${batch.id}:${image.id}`, uri);
-        return { ...metadata, uri };
+        return { ...metadata, annotations: metadata.annotations ?? [], uri };
       }),
     }));
 }
