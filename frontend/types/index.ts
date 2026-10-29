@@ -12,6 +12,9 @@ export interface StoredBatch {
   locationCity: string | null;
   botanicalName: string | null;
   weedBackground: string | null;
+  growingEnvironment?: string | null;
+  plantingSystem?: string | null;
+  /** Legacy field used by batches saved before the parameter split. */
   weedSite?: string | null;
   growthStage: string | null;
   soilColor: string | null;
