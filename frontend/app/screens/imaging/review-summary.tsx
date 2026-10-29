@@ -18,6 +18,7 @@ import { createNewBatch, formatBatchName, useBatch } from "../../context/BatchCo
 import { Ionicons } from "@expo/vector-icons";
 import { saveBatch } from "@/utils/batchStore";
 import { showAlert } from "@/utils/alerts";
+import { getCollectorProfileError } from '@/utils/collectorProfile';
 
 export default function ReviewSummaryScreen() {
   const router = useRouter();
@@ -48,6 +49,11 @@ export default function ReviewSummaryScreen() {
   };
 
   const validateBatch = (): boolean => {
+    const collectorError = getCollectorProfileError(batchData);
+    if (collectorError) {
+      showAlert('Complete collector and location details', collectorError);
+      return false;
+    }
     const requiredFields = [
       batchData.name,
       batchData.locationCountry,

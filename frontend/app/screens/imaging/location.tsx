@@ -7,12 +7,17 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Platform,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { PageTransition } from "@/components/PageTransition";
 import { type BatchData, createNewBatch, useBatch } from "../../context/BatchContext";
 import { saveBatch } from "@/utils/batchStore";
 import { showAlert } from "@/utils/alerts";
+import { getCollectorProfileError, normalizeCollectorProfile } from '@/utils/collectorProfile';
+import { loadCollectorProfile, saveCollectorProfile } from '@/utils/collectorPreferences';
+
+const FORM_FONT = Platform.OS === 'ios' ? 'System' : 'sans-serif';
 
 const LOCATION_DATA = (require("@/assets/data/locations.json") as {
   name: string;
@@ -33,6 +38,30 @@ export default function LocationScreen() {
   const [collectorName, setCollectorName] = useState(batchData?.collectorName ?? '');
   const [collectorEmail, setCollectorEmail] = useState(batchData?.collectorEmail ?? '');
   const [organization, setOrganization] = useState(batchData?.organization ?? '');
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [initialLocationCountry] = useState(batchData?.locationCountry);
+
+  useEffect(() => {
+    let active = true;
+    loadCollectorProfile().then((profile) => {
+      if (!active || !profile) return;
+      setCollectorName((current) => current || profile.collectorName);
+      setCollectorEmail((current) => current || profile.collectorEmail);
+      setOrganization((current) => current || profile.organization);
+      // Keep an in-progress batch's country/state together when returning here.
+      if (!initialLocationCountry) {
+        setCountry(profile.locationCountry);
+        setState(profile.locationState);
+      }
+    }).catch(() => {
+      if (active) showAlert('Unable to load saved details', 'Please enter your details again.');
+    }).finally(() => {
+      if (active) setLoadingProfile(false);
+    });
+    return () => { active = false; };
+    // The initial value is stable; later batch changes must not replace edits.
+  }, [initialLocationCountry]);
 
   const stateOptions = useMemo(() => {
     if (!country) return [];
@@ -51,29 +80,34 @@ export default function LocationScreen() {
     }
   }, [country, state, stateOptions]);
 
-  const isValid = !!country && !!state;
+  const profile = normalizeCollectorProfile({ collectorName, collectorEmail, organization,
+    locationCountry: country, locationState: state });
+  const isValid = !getCollectorProfileError(profile) && !!country && stateOptions.includes(state ?? '');
+  const busy = loadingProfile || savingProfile;
 
   const handleContinue = async () => {
-    if (!country || !state) {
-      showAlert("Please complete location selection");
+    if (busy) return;
+    const error = getCollectorProfileError(profile);
+    if (error || !isValid) {
+      showAlert('Complete your details', error || 'Please select a country and state.');
       return;
     }
 
-    const email = collectorEmail.trim();
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      showAlert('Check email address', 'Enter a valid email address, or leave this optional field blank.');
+    setSavingProfile(true);
+    try {
+      await saveCollectorProfile(profile);
+    } catch {
+      showAlert('Unable to save your details', 'Your details could not be remembered on this device. Please try again.');
       return;
+    } finally {
+      setSavingProfile(false);
     }
 
     const baseBatch: BatchData = batchData ?? createNewBatch();
 
     const nextBatch: BatchData = {
       ...baseBatch,
-      collectorName: collectorName.trim() || null,
-      collectorEmail: email || null,
-      organization: organization.trim() || null,
-      locationCountry: country,
-      locationState: state,
+      ...profile,
       locationCity: null,
       name: baseBatch.name,
       synced: baseBatch.synced,
@@ -100,7 +134,8 @@ export default function LocationScreen() {
   return (
     <PageTransition>
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={[styles.label, styles.detailLabel]}>Collector / team name (optional)</Text>
+      <Text style={styles.hint}>{loadingProfile ? 'Loading saved details…' : 'All fields are required. Your details are remembered for future batches and can be edited here.'}</Text>
+      <Text style={styles.label}>Collector / team name</Text>
       <TextInput
         accessibilityLabel="Collector or team name"
         placeholder="Person or team collecting the images"
@@ -110,9 +145,10 @@ export default function LocationScreen() {
         autoComplete="name"
         autoCapitalize="words"
         style={styles.input}
+        editable={!busy}
       />
 
-      <Text style={[styles.label, styles.detailLabel]}>Email address (optional)</Text>
+      <Text style={styles.label}>Email address</Text>
       <TextInput
         accessibilityLabel="Collector email address"
         placeholder="name@example.org"
@@ -124,9 +160,10 @@ export default function LocationScreen() {
         autoCapitalize="none"
         autoCorrect={false}
         style={styles.input}
+        editable={!busy}
       />
 
-      <Text style={[styles.label, styles.detailLabel]}>Organization (optional)</Text>
+      <Text style={styles.label}>Organization</Text>
       <TextInput
         accessibilityLabel="Organization"
         placeholder="Organization name"
@@ -135,21 +172,25 @@ export default function LocationScreen() {
         onChangeText={setOrganization}
         autoCapitalize="words"
         style={styles.input}
+        editable={!busy}
       />
 
       <Text style={styles.label}>Country</Text>
       <View style={styles.pickerBox}>
         <Picker
           selectedValue={country}
+          accessibilityLabel="Country"
+          enabled={!busy}
           onValueChange={(value) => {
             setCountry(value);
             setState(null);
           }}
           style={styles.picker}
+          itemStyle={styles.pickerItem}
         >
-          <Picker.Item label="Select country" value={null as any} />
+          <Picker.Item label="Select country" value={null as any} fontFamily={FORM_FONT} style={styles.pickerItem} />
           {COUNTRY_OPTIONS.map((option) => (
-            <Picker.Item key={option.value} label={option.label} value={option.value} />
+            <Picker.Item key={option.value} label={option.label} value={option.value} fontFamily={FORM_FONT} style={styles.pickerItem} />
           ))}
         </Picker>
       </View>
@@ -158,23 +199,25 @@ export default function LocationScreen() {
       <View style={styles.pickerBox}>
         <Picker
           selectedValue={state}
+          accessibilityLabel="State"
           onValueChange={setState}
-          enabled={!!country}
+          enabled={!!country && !busy}
           style={styles.picker}
+          itemStyle={styles.pickerItem}
         >
-          <Picker.Item label={country ? "Select state" : "Select country first"} value={null as any} />
+          <Picker.Item label={country ? "Select state" : "Select country first"} value={null as any} fontFamily={FORM_FONT} style={styles.pickerItem} />
           {stateOptions.map((option) => (
-            <Picker.Item key={option} label={option} value={option} />
+            <Picker.Item key={option} label={option} value={option} fontFamily={FORM_FONT} style={styles.pickerItem} />
           ))}
         </Picker>
       </View>
 
       <TouchableOpacity
-        style={[styles.button, !isValid && styles.buttonDisabled]}
+        style={[styles.button, (!isValid || busy) && styles.buttonDisabled]}
         onPress={handleContinue}
-        disabled={!isValid}
+        disabled={!isValid || busy}
       >
-        <Text style={styles.buttonText}>Continue</Text>
+        <Text style={styles.buttonText}>{savingProfile ? 'Saving…' : 'Continue'}</Text>
       </TouchableOpacity>
     </ScrollView>
     </PageTransition>
@@ -189,12 +232,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   label: {
-    fontSize: 32,
+    fontSize: 20,
     color: "#fff",
     marginBottom: 8,
     marginTop: 12,
     fontWeight: "600",
-    fontFamily: "sans-serif",
+    fontFamily: FORM_FONT,
   },
   pickerBox: {
     backgroundColor: "#f0f0f0",
@@ -203,8 +246,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     overflow: "hidden",
   },
-  detailLabel: {
-    fontSize: 20,
+  hint: {
+    fontFamily: FORM_FONT,
+    fontSize: 14,
+    color: '#ccc',
+    marginBottom: 8,
   },
   input: {
     backgroundColor: '#f0f0f0',
@@ -214,14 +260,20 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     minHeight: 52,
     fontSize: 16,
+    fontFamily: FORM_FONT,
     marginBottom: 12,
   },
   picker: {
     color: "#000",
     backgroundColor: "#f0f0f0",
     fontSize: 16,
+    fontFamily: FORM_FONT,
     height: 60,
     borderRadius: 8,
+  },
+  pickerItem: {
+    fontFamily: FORM_FONT,
+    fontSize: 16,
   },
   button: {
     backgroundColor: "#4CAF50",
@@ -235,6 +287,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
+    fontFamily: FORM_FONT,
     color: "#fff",
     fontSize: 18,
     fontWeight: "700",

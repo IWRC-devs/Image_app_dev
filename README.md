@@ -6,7 +6,7 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 
 - **Platform focus: Android.** Android saves through the Storage Access Framework; the web app uses browser-local IndexedDB storage, and iOS uses private internal storage (see below).
 - **Browser/PWA preview:** the same Expo app also exports to the web, with offline caching and browser-local batch storage. Android APK and AAB build options remain available.
-- **Collector details:** optional collector/team name, email address and organization can be entered with country/state and are included in each saved `batch.txt` and PWA batch download.
+- **Collector details:** collector/team name, valid email address, organization, country and state are required. They are remembered on the current browser/device after Continue, prefilled for later batches, and editable on the same screen. Each batch retains its own details in `batch.txt` and PWA downloads.
 - **Handoff integration preview:** includes environment/planting-system fields, image EXIF, and a per-image bounding-box editor. See [integration details and the saved metadata example](docs/desktop-handoff-integration.md).
 - **Fully local, no backend.** The app does not upload batches, images, or metadata to any server or cloud account. There is no login/account system.
 - **Capture flow**: Location → Parameters (botanical name, site, background, growth stage, soil color, lighting) → Image capture or manual selection → Review & Save, with a slide-in page transition between steps and a success screen (with a **Done** button that returns to the home screen) after saving.
@@ -24,6 +24,8 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 The chosen folder is remembered after the first save, so the picker only appears once per device.
 
 **In the browser/PWA**, photos and metadata are saved to IndexedDB on the current browser and device. They survive closing and reopening the page, but clearing this site's browser data removes them. They are not synchronized across browsers, devices, or the Android app. Private browsing may restrict storage. On phones, the camera option uses the browser's supported camera/file picker; desktops can select image files.
+
+The PWA remembers collector/location defaults in browser local storage; Android uses app-local preferences. These defaults are not sent to a server. Clearing site data or uninstalling the Android app removes the remembered defaults. Updating defaults affects future batches, not previously saved batches.
 
 Use the download icon on a Saved Batch to export its photos, readable metadata and YOLO labels as a ZIP. Tap photos while capturing, selecting or reviewing to add, move or resize bounding boxes. Selected EXIF and embedded GPS are included when available in the source photo; metadata is read locally.
 
