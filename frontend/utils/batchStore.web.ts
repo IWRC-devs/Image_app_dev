@@ -1,7 +1,7 @@
-import type { StoredBatch } from '@/types';
+import type { ImageItem, StoredBatch } from '@/types';
 
 type BrowserBatch = Omit<StoredBatch, 'images'> & {
-  images: { id: string; blob: Blob }[];
+  images: (Omit<ImageItem, 'uri'> & { blob: Blob })[];
 };
 
 let database: Promise<IDBDatabase> | undefined;
@@ -48,9 +48,10 @@ async function writeBatch(batch: BrowserBatch | string) {
 export async function saveBatch(batch: StoredBatch): Promise<StoredBatch> {
   const images: BrowserBatch['images'] = [];
   for (const image of batch.images) {
-    const response = await fetch(image.uri);
+    const { uri, ...metadata } = image;
+    const response = await fetch(uri);
     if (!response.ok) throw new Error('An image could not be read. Please select it again.');
-    images.push({ id: image.id, blob: await response.blob() });
+    images.push({ ...metadata, blob: await response.blob() });
   }
   const storedBatch = {
     ...batch,
@@ -80,9 +81,10 @@ export async function getSavedBatches(): Promise<StoredBatch[]> {
     .map((batch) => ({
       ...batch,
       images: batch.images.map((image) => {
-        const uri = URL.createObjectURL(image.blob);
+        const { blob, ...metadata } = image;
+        const uri = URL.createObjectURL(blob);
         imageUrls.set(`${batch.id}:${image.id}`, uri);
-        return { id: image.id, uri };
+        return { ...metadata, uri };
       }),
     }));
 }

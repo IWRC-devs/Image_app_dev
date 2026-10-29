@@ -7,7 +7,10 @@ const fixture = (id, savedAt = '2026-10-29T12:00:00Z') => ({
   id, name: id, savedAt, synced: false,
   locationCountry: 'United States', locationState: 'Texas', locationCity: null,
   botanicalName: 'Test specimen', weedBackground: 'Soil', growthStage: 'Seedling', soilColor: 'Brown',
-  images: [{ id: 'photo-1', uri: 'data:image/png;base64,aW1hZ2UtYnl0ZXM=' }],
+  growingEnvironment: 'Field', plantingSystem: 'Soil',
+  images: [{ id: 'photo-1', uri: 'data:image/png;base64,aW1hZ2UtYnl0ZXM=',
+    fileName: 'specimen.png', width: 200, height: 100, mimeType: 'image/png', fileSizeBytes: 11,
+    exif: { cameraModel: 'Test camera', latitude: 0, longitude: 0 } }],
 });
 
 test('photo bytes and metadata survive a fresh page module, and deletion persists', async () => {
@@ -16,6 +19,11 @@ test('photo bytes and metadata survive a fresh page module, and deletion persist
   const [saved] = await freshPage.getSavedBatches();
   assert.equal(saved.name, 'durable-batch');
   assert.equal(saved.botanicalName, 'Test specimen');
+  assert.equal(saved.growingEnvironment, 'Field');
+  assert.equal(saved.plantingSystem, 'Soil');
+  assert.equal(saved.images[0].width, 200);
+  assert.equal(saved.images[0].fileName, 'specimen.png');
+  assert.deepEqual(saved.images[0].exif, { cameraModel: 'Test camera', latitude: 0, longitude: 0 });
   assert.equal(await (await fetch(saved.images[0].uri)).text(), 'image-bytes');
   await freshPage.deleteBatch('durable-batch');
   assert.deepEqual(await getSavedBatches(), []);

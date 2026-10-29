@@ -1,9 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
+import { ImageItem } from "@/types";
 
-export type ImageItem = {
-  id: string;
-  uri: string;
-};
+export type { ImageItem } from "@/types";
 
 export type BatchData = {
   synced: any;
@@ -15,7 +13,8 @@ export type BatchData = {
   locationCity: string | null;
   botanicalName: string | null;
   weedBackground: string | null;
-  weedSite?: string | null;
+  growingEnvironment: string | null;
+  plantingSystem: string | null;
   growthStage: string | null;
   soilColor: string | null;
   lightingId?: number;
@@ -62,7 +61,8 @@ export const createNewBatch = (): BatchData => {
     locationCity: null,
     botanicalName: null,
     weedBackground: null,
-    weedSite: null,
+    growingEnvironment: null,
+    plantingSystem: null,
     growthStage: null,
     soilColor: null,
     lightingId: undefined,

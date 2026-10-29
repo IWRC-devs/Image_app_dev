@@ -18,16 +18,18 @@ export default function ParametersScreen() {
   const { batchData, setBatchData } = useBatch();
 
   const weedBackgroundOptions = ["Fallow", "Crop", "Pasture", "Other Weeds", "Black/Gray Mat"];
-  const weedSiteOptions = ["Field", "Pot"];
+  const growingEnvironmentOptions = ["Field", "Greenhouse"];
+  const plantingSystemOptions = ["Soil", "Pot"];
   const growthStageOptions = ["Seedling", "Vegetative", "Flowering", "Mature"];
   const soilColorOptions = ["Black", "Brown", "Grey", "Pale Bleached", "Red", "Yellow Brown", "Not Visible"];
-  const [weedBackground, setWeedBackground] = useState<string | null>(null);
-  const [weedSite, setWeedSite] = useState<string | null>(null);
-  const [growthStage, setGrowthStage] = useState<string | null>(null);
-  const [soilColor, setSoilColor] = useState<string | null>(null);
+  const [weedBackground, setWeedBackground] = useState<string | null>(batchData?.weedBackground ?? null);
+  const [growingEnvironment, setGrowingEnvironment] = useState<string | null>(batchData?.growingEnvironment ?? null);
+  const [plantingSystem, setPlantingSystem] = useState<string | null>(batchData?.plantingSystem ?? null);
+  const [growthStage, setGrowthStage] = useState<string | null>(batchData?.growthStage ?? null);
+  const [soilColor, setSoilColor] = useState<string | null>(batchData?.soilColor ?? null);
   const [lighting, setLighting] = useState<{ id: number; name: string }[]>([]);
   const [selectedLightingId, setSelectedLighting] = useState<number | null>(batchData?.lightingId ?? null);
-  const [botanicalName, setBotanicalName] = useState("");
+  const [botanicalName, setBotanicalName] = useState(batchData?.botanicalName ?? "");
   const [botanicalOptions, setBotanicalOptions] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -91,7 +93,7 @@ export default function ParametersScreen() {
   };
 
   const onContinue = async () => {
-    if (!weedBackground || !weedSite || !growthStage || !soilColor || !botanicalName || selectedLightingId === null || selectedLightingId === undefined) return;
+    if (!weedBackground || !growingEnvironment || !plantingSystem || !growthStage || !soilColor || !botanicalName || selectedLightingId === null || selectedLightingId === undefined) return;
 
     await ensureBotanicalExists(botanicalName);
 
@@ -99,7 +101,8 @@ export default function ParametersScreen() {
       setBatchData({
         ...batchData,
         weedBackground,
-        weedSite,
+        growingEnvironment,
+        plantingSystem,
         growthStage,
         soilColor,
         botanicalName,
@@ -181,8 +184,11 @@ export default function ParametersScreen() {
           )}
 
           <View style={styles.container}>
-            <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Weed site</ThemedText>
-            {renderList(weedSiteOptions, weedSite, setWeedSite)}
+            <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Growing environment</ThemedText>
+            {renderList(growingEnvironmentOptions, growingEnvironment, setGrowingEnvironment)}
+
+            <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Planting system</ThemedText>
+            {renderList(plantingSystemOptions, plantingSystem, setPlantingSystem)}
 
             <ThemedText style={[styles.sectionTitle, { marginTop: 20 }]}>Background</ThemedText>
             {renderList(weedBackgroundOptions, weedBackground, setWeedBackground)}
@@ -219,7 +225,7 @@ export default function ParametersScreen() {
           </View>
         </ScrollView>
 
-        {(weedBackground && weedSite && growthStage && soilColor && botanicalName && selectedLightingId !== null && selectedLightingId !== undefined) && (
+        {(weedBackground && growingEnvironment && plantingSystem && growthStage && soilColor && botanicalName && selectedLightingId !== null && selectedLightingId !== undefined) && (
           <SafeAreaView
             edges={[]}
             style={{ paddingHorizontal: 0, paddingTop: 20, paddingBottom: 12 }}>

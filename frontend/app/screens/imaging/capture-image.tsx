@@ -4,10 +4,10 @@ import { useRouter } from "expo-router";
 import { SafeAreaView, ScrollView, View, StyleSheet, TouchableOpacity, Image, Platform } from "react-native";
 import { showAlert } from "@/utils/alerts";
 import { Button } from "react-native-paper";
-import uuid from 'react-native-uuid';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { ImageItem, useBatch } from "../../context/BatchContext";
+import { imageItemFromPickerAsset } from "@/utils/imageMetadata";
 
 export default function CaptureImageScreen() {
   const { batchData, setBatchData } = useBatch();
@@ -23,9 +23,13 @@ export default function CaptureImageScreen() {
       if (!permission.granted) return;
     }
 
-    const result = await ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.7 });
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: false,
+      quality: 0.7,
+      exif: true,
+    });
     if (!result.canceled && result.assets.length > 0) {
-      const newImage: ImageItem = { id: uuid.v4() as string, uri: result.assets[0].uri };
+      const newImage: ImageItem = imageItemFromPickerAsset(result.assets[0]);
       const updatedImages = [...capturedImages, newImage].slice(0, 500);
       //setCapturedImages(updatedImages);
       setBatchData({ ...batchData, images: updatedImages }); // Update context
