@@ -134,7 +134,6 @@ export default function LocationScreen() {
   return (
     <PageTransition>
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Text style={styles.hint}>{loadingProfile ? 'Loading saved details…' : 'All fields are required. Your details are remembered for future batches and can be edited here.'}</Text>
       <Text style={styles.label}>Collector / team name</Text>
       <TextInput
         accessibilityLabel="Collector or team name"
@@ -245,12 +244,6 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     marginBottom: 12,
     overflow: "hidden",
-  },
-  hint: {
-    fontFamily: FORM_FONT,
-    fontSize: 14,
-    color: '#ccc',
-    marginBottom: 8,
   },
   input: {
     backgroundColor: '#f0f0f0',
