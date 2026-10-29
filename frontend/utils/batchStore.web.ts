@@ -53,7 +53,8 @@ export async function saveBatch(batch: StoredBatch): Promise<StoredBatch> {
     const { uri, ...metadata } = image;
     const response = await fetch(uri);
     if (!response.ok) throw new Error('An image could not be read. Please select it again.');
-    images.push({ ...metadata, blob: await response.blob() });
+    const blob = await response.blob();
+    images.push({ ...metadata, fileSizeBytes: blob.size, mimeType: metadata.mimeType || blob.type, blob });
   }
   const storedBatch = {
     ...batch,

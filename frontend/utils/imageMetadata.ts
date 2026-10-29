@@ -95,6 +95,7 @@ export function imageItemFromPickerAsset(asset: ImagePicker.ImagePickerAsset): I
     mimeType: asset.mimeType,
     fileSizeBytes: asset.fileSize,
     exif: normalizeExif(asset.exif),
-    annotations: [],
+    // The first annotation visit starts with a box. Done stores an explicit
+    // empty array if the collector intentionally removes every box.
   };
 }

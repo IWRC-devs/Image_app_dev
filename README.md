@@ -27,7 +27,9 @@ The chosen folder is remembered after the first save, so the picker only appears
 
 The PWA remembers collector/location defaults in browser local storage; Android uses app-local preferences. These defaults are not sent to a server. Clearing site data or uninstalling the Android app removes the remembered defaults. Updating defaults affects future batches, not previously saved batches.
 
-Use the download icon on a Saved Batch to export its photos, readable metadata and YOLO labels as a ZIP. Tap photos while capturing, selecting or reviewing to add, move or resize bounding boxes. Selected EXIF and embedded GPS are included when available in the source photo; metadata is read locally.
+Use the download icon on a Saved Batch to export its photos, readable metadata and YOLO labels as a ZIP. Each photo in capture, image selection or review has a large green **Annotate** button. Box labels show the selected weed name. **Done** keeps the edits and returns to the captured/selected-images list so you can annotate another image or add more photos. Finish with **Review & Save → Save locally** to save the complete batch. Selected EXIF and embedded GPS are included when available in the source photo; metadata is read locally.
+
+In `batch.txt`, schema 5 groups metadata under each saved image filename. Each image has `resolution`, file type/size, available EXIF, and `bounding_box_coordinates` containing `instance_1`, `instance_2`, and so on. Each instance contains the weed name and YOLO-normalized `x_center`, `y_center`, `width`, and `height` (0–1). The matching YOLO label files are also retained. Older annotation formats remain readable; see [the metadata example](docs/batch-metadata-example.json).
 
 **On iOS**, batches are saved instead to the app's private internal document storage (not visible in a file manager), since the Storage Access Framework is Android-only.
 

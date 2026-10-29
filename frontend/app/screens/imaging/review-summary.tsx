@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import {
   View,
   ScrollView,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Platform,
@@ -15,7 +14,7 @@ import { SuccessOverlay } from "@/components/SuccessOverlay";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { createNewBatch, formatBatchName, useBatch } from "../../context/BatchContext";
-import { Ionicons } from "@expo/vector-icons";
+import { AnnotationImageCard } from '@/components/AnnotationImageCard';
 import { saveBatch } from "@/utils/batchStore";
 import { showAlert } from "@/utils/alerts";
 import { getCollectorProfileError } from '@/utils/collectorProfile';
@@ -176,29 +175,11 @@ export default function ReviewSummaryScreen() {
             Selected Images ({selectedImages.length})
           </ThemedText>
           <View style={styles.grid}>
-            {selectedImages.map((item) => (
-              <View key={item.id} style={styles.imageWrapper}>
-                <TouchableOpacity style={styles.imageButton} onPress={() => annotateImage(item.id)}>
-                  <Image source={{ uri: item.uri }} style={styles.thumbnail} />
-                  <View style={styles.annotationBadge}>
-                    <Ionicons name="scan-outline" size={13} color="#fff" />
-                    <ThemedText style={styles.annotationBadgeText}>
-                      {item.annotations?.length ?? 0}
-                    </ThemedText>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => removeImage(item.id)}
-                >
-                  <Ionicons name="close-circle" size={24} color="red" />
-                </TouchableOpacity>
-              </View>
+            {selectedImages.map((item, index) => (
+              <AnnotationImageCard key={item.id} image={item} index={index} weedName={batchData.botanicalName}
+                onAnnotate={() => annotateImage(item.id)} onRemove={() => removeImage(item.id)} />
             ))}
           </View>
-          {selectedImages.length > 0 && (
-            <ThemedText style={styles.annotationHint}>Tap a photo to add or edit bounding boxes.</ThemedText>
-          )}
 
           {selectedImages.length > 0 && (
             <View style={{ marginTop: 16, marginBottom: 12 }}>
@@ -237,6 +218,7 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    gap: 12,
   },
   summaryBox: {
     borderRadius: 8,
@@ -270,52 +252,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 12,
     color: "#fff",
-  },
-  imageWrapper: {
-    position: "relative",
-    margin: 8,
-  },
-  thumbnail: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-  },
-  imageButton: {
-    width: 100,
-    height: 100,
-  },
-  annotationBadge: {
-    position: "absolute",
-    left: 5,
-    bottom: 5,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    backgroundColor: "rgba(0,0,0,0.75)",
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  annotationBadgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  annotationHint: {
-    color: "#fff",
-    marginLeft: 8,
-  },
-  removeButton: {
-    position: "absolute",
-    top: -10,
-    right: -10,
-    backgroundColor: "white",
-    borderRadius: 60,
-    width: 25,
-    height: 25,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1,
   },
   continueButton: {
     marginTop: 12,

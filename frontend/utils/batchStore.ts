@@ -118,7 +118,8 @@ async function saveBatchToDeviceFolder(batch: StoredBatch): Promise<StoredBatch>
     await FileSystem.writeAsStringAsync(imageUri, base64Image, {
       encoding: FileSystem.EncodingType.Base64,
     });
-    permanentImages.push({ ...image, uri: imageUri, fileName });
+    const fileSizeBytes = Math.floor(base64Image.length * 3 / 4) - (base64Image.endsWith('==') ? 2 : base64Image.endsWith('=') ? 1 : 0);
+    permanentImages.push({ ...image, uri: imageUri, fileName, fileSizeBytes, mimeType: image.mimeType || imageMimeType(fileName) });
     await writeSafTextFile(batchUri, labelFileName(fileName), (image.annotations ?? []).map(yoloLine).join('\n'));
   }
 
@@ -200,7 +201,10 @@ async function saveBatchInternal(batch: StoredBatch): Promise<StoredBatch> {
     if (image.uri !== destination) {
       await FileSystem.copyAsync({ from: image.uri, to: destination });
     }
-    permanentImages.push({ ...image, uri: destination, fileName });
+    const fileInfo = await FileSystem.getInfoAsync(destination);
+    permanentImages.push({ ...image, uri: destination, fileName,
+      fileSizeBytes: fileInfo.exists ? fileInfo.size : image.fileSizeBytes,
+      mimeType: image.mimeType || imageMimeType(fileName) });
     await FileSystem.writeAsStringAsync(`${imagesDirectory}${labelFileName(fileName)}`, (image.annotations ?? []).map(yoloLine).join('\n'));
   }
 

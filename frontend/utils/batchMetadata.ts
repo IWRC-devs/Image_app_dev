@@ -175,7 +175,11 @@ export function normalizeSavedBatch(
         mimeType: image?.mime_type ?? image?.mimeType ?? null,
         fileSizeBytes: image?.file_size_bytes ?? image?.fileSizeBytes,
         exif: normalizeExif(image?.exif),
-        annotations: (Array.isArray(image?.annotations) ? image.annotations : [])
+        annotations: (Array.isArray(image?.annotations) ? image.annotations :
+          Object.entries(image?.bounding_box_coordinates ?? {}).map(([instance, coordinates]) => ({
+            ...(coordinates as Record<string, unknown>), id: instance,
+            class_name: (coordinates as Record<string, unknown>)?.weed_name,
+          })))
           .map((annotation: any, index: number) => normalizeAnnotation({
             ...annotation,
             classId: annotation.class_id ?? annotation.classId ?? Math.max(0,
@@ -198,24 +202,27 @@ export function toInternalMetadata(batch: StoredBatch, lightingOptions: { id: nu
       const resolution = compactObject({ width: image.width, height: image.height });
       return [
         fileName,
-        compactObject({
+        {
+          ...compactObject({
           resolution,
           orientation: imageOrientation(image.width, image.height),
           mime_type: image.mimeType,
           file_size_bytes: image.fileSizeBytes,
           exif: serializeExif(image.exif),
-          annotations: (image.annotations ?? []).map((annotation) => ({
-            class_name: classes[annotation.classId],
-            bbox_yolo: { x_center: annotation.xCenter, y_center: annotation.yCenter,
+          }),
+          bounding_box_coordinates: Object.fromEntries((image.annotations ?? []).map((annotation, instance) => [
+            `instance_${instance + 1}`,
+            { weed_name: classes[annotation.classId],
+              x_center: annotation.xCenter, y_center: annotation.yCenter,
               width: annotation.width, height: annotation.height },
-          })),
-        }),
+          ])),
+        },
       ];
     })
   );
 
   return {
-    schema_version: 4,
+    schema_version: 5,
     batch_name: batch.name,
     saved_at: batch.savedAt,
     collector: compactObject({

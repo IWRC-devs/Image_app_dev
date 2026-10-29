@@ -10,17 +10,17 @@ The metadata commits merge into `main` alongside the existing PWA. The combined 
 
 ## Combined behavior
 
-Tap a photo in capture, image selection, or review to edit its boxes. Add several boxes, drag to move, and drag a corner to resize. Choose Done to retain edits. Deleting all boxes retains an intentionally unannotated image.
+Use the large green Annotate button on a photo in capture, image selection, or review to edit its boxes. Box labels show the selected weed name. Add several boxes, drag to move, and drag a corner to resize. Done retains edits and returns to the capture or selected-images list, where more photos can be added or annotated. Deleting all boxes retains an intentionally unannotated image.
 
 Android continues saving to the chosen device folder. Each photo has a matching YOLO `.txt` label file, plus `classes.txt` and `batch.txt`. The PWA saves image bytes, annotations and metadata to IndexedDB. Its Saved Batches download button exports a ZIP with the same photos, label files, classes and readable metadata. EXIF is read locally when present; no upload or account is involved.
 
-Schema 4 retains readable parameter/class names and omits internal UUIDs, device URIs and categorical IDs. YOLO numeric class indexes occur in label files, with line positions defined by `classes.txt`. See [a saved metadata example](batch-metadata-example.json). Its first annotation produces:
+Schema 5 retains readable parameter/class names and omits internal UUIDs, device URIs and categorical IDs. Under each image filename, `bounding_box_coordinates` contains numbered instances alongside resolution, file details and available EXIF. YOLO numeric class indexes occur in label files, with line positions defined by `classes.txt`. See [a saved metadata example](batch-metadata-example.json). Its first annotation produces:
 
 ```text
 0 0.500000 0.400000 0.200000 0.400000
 ```
 
-Older flat metadata, pre-annotation photos and schema 3 metadata remain readable. Export serialization is shared by Android and the PWA to prevent their formats diverging.
+Older flat metadata, pre-annotation photos and schema 3/4 metadata remain readable. Export serialization is shared by Android and the PWA to prevent their formats diverging.
 
 ## Validation
 

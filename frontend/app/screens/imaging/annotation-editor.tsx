@@ -16,6 +16,8 @@ import uuid from "react-native-uuid";
 import { useBatch } from "@/app/context/BatchContext";
 import { ThemedText } from "@/components/ThemedText";
 import { BoundingBoxAnnotation } from "@/types";
+import { completeAnnotationEdit } from '@/utils/annotationEditing';
+import { showAlert } from '@/utils/alerts';
 
 const MIN_BOX_SIZE = 0.04;
 const HANDLE_SIZE = 26;
@@ -103,12 +105,14 @@ function CornerHandle({
 function BoundingBox({
   box,
   canvas,
+  weedName,
   selected,
   onSelect,
   onChange,
 }: {
   box: BoundingBoxAnnotation;
   canvas: Size;
+  weedName: string;
   selected: boolean;
   onSelect: () => void;
   onChange: (box: BoundingBoxAnnotation) => void;
@@ -166,7 +170,7 @@ function BoundingBox({
       ]}
     >
       <View style={styles.dragSurface} {...moveResponder.panHandlers}>
-        <ThemedText style={styles.boxLabel}>{box.classId}</ThemedText>
+        <ThemedText style={[styles.boxLabel, { top: top < 24 ? 3 : -24, maxWidth: canvas.width - left }]} numberOfLines={1}>{weedName}</ThemedText>
       </View>
       {selected &&
         (["topLeft", "topRight", "bottomLeft", "bottomRight"] as Corner[]).map(
@@ -243,20 +247,13 @@ export default function AnnotationEditorScreen() {
   };
 
   const saveAnnotations = () => {
-    setBatchData({
-      ...batchData,
-      images: batchData.images.map((item) =>
-        item.id === image.id
-          ? {
-              ...item,
-              width: image.width || sourceSize.width,
-              height: image.height || sourceSize.height,
-              annotations: boxes,
-            }
-          : item
-      ),
-    });
-    router.back();
+    try {
+      const result = completeAnnotationEdit(batchData, image.id, boxes, sourceSize);
+      setBatchData(result.batch);
+      router.replace(result.route);
+    } catch (error) {
+      showAlert('Unable to keep annotations', error instanceof Error ? error.message : 'Please check your boxes and try again.');
+    }
   };
 
   const onViewportLayout = (event: LayoutChangeEvent) => {
@@ -274,12 +271,12 @@ export default function AnnotationEditorScreen() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.instructions}>
-        <ThemedText style={styles.title}>Mark each weed of interest</ThemedText>
+        <ThemedText style={styles.title}>{batchData.botanicalName || 'Weed of interest'}</ThemedText>
         <ThemedText style={styles.helpText}>
           Drag inside a box to move it. Drag any corner to resize it.
         </ThemedText>
         <ThemedText style={styles.imageInfo}>
-          {sourceSize.width} × {sourceSize.height} px · {boxes.length} box{boxes.length === 1 ? "" : "es"}
+          {sourceSize.width} × {sourceSize.height} px · {boxes.length ? `${boxes.length} ${boxes.length === 1 ? 'box' : 'boxes'}` : 'No boxes'}
         </ThemedText>
       </View>
 
@@ -292,6 +289,7 @@ export default function AnnotationEditorScreen() {
                 key={box.id}
                 box={box}
                 canvas={canvas}
+                weedName={batchData.botanicalName || box.className || 'Weed of interest'}
                 selected={box.id === selectedId}
                 onSelect={() => setSelectedId(box.id)}
                 onChange={updateBox}

@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "batch_name": "field_batch",
   "saved_at": "2026-10-29T12:00:00Z",
   "collector": {
@@ -27,12 +27,22 @@
       "mime_type": "image/png",
       "file_size_bytes": 11,
       "exif": { "camera_make": "Test", "camera_model": "Camera" },
-      "annotations": [
-        {
-          "class_name": "Test specimen",
-          "bbox_yolo": { "x_center": 0.5, "y_center": 0.4, "width": 0.2, "height": 0.4 }
+      "bounding_box_coordinates": {
+        "instance_1": {
+          "weed_name": "Test specimen",
+          "x_center": 0.5,
+          "y_center": 0.4,
+          "width": 0.2,
+          "height": 0.4
+        },
+        "instance_2": {
+          "weed_name": "Test specimen",
+          "x_center": 0.8,
+          "y_center": 0.4,
+          "width": 0.1,
+          "height": 0.4
         }
-      ]
+      }
     }
   },
   "annotation_format": "YOLO normalized (class_id x_center y_center width height)",

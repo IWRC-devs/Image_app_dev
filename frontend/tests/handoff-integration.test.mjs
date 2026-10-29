@@ -4,6 +4,7 @@ import { strFromU8, unzipSync } from 'fflate';
 import { normalizeAnnotation, normalizeSavedBatch, toInternalMetadata, yoloLine } from '../utils/batchMetadata.ts';
 import { createBatchArchive } from '../utils/exportBatch.web.ts';
 import { normalizeExif } from '../utils/imageMetadata.ts';
+import { completeAnnotationEdit } from '../utils/annotationEditing.ts';
 
 const lighting = [{ id: 1, name: 'sunny' }];
 const box = { id: 'internal-box-uuid', classId: 0, className: 'Test specimen',
@@ -30,6 +31,11 @@ test('clean metadata preserves parameters, EXIF and boxes through a saved-file r
   assert.equal(metadata.parameters.lighting, 'Sunny');
   assert.deepEqual(metadata.collector, { name: 'Sample Collector', email: 'collector@example.org', organization: 'Example Organization' });
   assert.deepEqual(metadata.images['original.png'].exif.gps, { latitude: 0, longitude: 0 });
+  assert.equal(metadata.schema_version, 5);
+  assert.deepEqual(metadata.images['original.png'].bounding_box_coordinates.instance_1, {
+    weed_name: 'Test specimen', x_center: 0.5, y_center: 0.4, width: 0.2, height: 0.4,
+  });
+  assert.equal(metadata.images['original.png'].bounding_box_coordinates.instance_2.x_center, 0.8);
   const loaded = normalizeSavedBatch(metadata, 'batch-folder', { 'original.png': 'file:///original.png' }, lighting);
   assert.equal(loaded.id, 'batch-folder');
   assert.equal(loaded.collectorName, 'Sample Collector');
@@ -62,7 +68,10 @@ test('download contains image bytes, clean batch JSON, classes and per-image YOL
   assert.equal(strFromU8(files['image_001.txt']).split('\n').length, 2);
   assert.equal(strFromU8(files['image_002.txt']), '');
   const metadata = JSON.parse(strFromU8(files['batch.txt']));
-  assert.equal(metadata.images['image_001.png'].annotations.length, 2);
+  assert.equal(Object.keys(metadata.images['image_001.png'].bounding_box_coordinates).length, 2);
+  assert.deepEqual(metadata.images['image_002.png'].bounding_box_coordinates, {});
+  assert.deepEqual(metadata.images['image_001.png'].resolution, { width: 200, height: 100 });
+  assert.equal(metadata.images['image_001.png'].file_size_bytes, 11);
   assert.equal(metadata.parameters.planting_system, 'Pot');
   assert.deepEqual(metadata.collector, { name: 'Sample Collector', email: 'collector@example.org', organization: 'Example Organization' });
 });
@@ -79,4 +88,30 @@ test('EXIF GPS rational coordinates and below-sea-level altitude retain their si
   assert.equal(exif.latitude, -30.25);
   assert.equal(exif.longitude, -97.5);
   assert.equal(exif.altitudeMeters, -12);
+});
+
+test('Done preserves all collected images and returns to their collection screen', () => {
+  const secondImage = { ...fixture.images[0], id: 'second-image', annotations: [] };
+  for (const mode of ['manual', 'capture']) {
+    const batch = { ...fixture, selectedOption: mode, images: [...fixture.images, secondImage] };
+    const result = completeAnnotationEdit(batch, secondImage.id, [box], { width: 200, height: 100 });
+    assert.equal(result.route, `/screens/imaging/${mode === 'capture' ? 'capture-image' : 'image-selection'}`);
+    assert.equal(result.batch.images.length, 2);
+    assert.equal(result.batch.images[0], batch.images[0]);
+    assert.equal(result.batch.images[1].annotations[0].className, fixture.botanicalName);
+    assert.equal(secondImage.annotations.length, 0);
+    const metadata = toInternalMetadata({ ...result.batch, images: result.batch.images.map((image, index) => ({ ...image, fileName: `image_${index + 1}.png` })) }, lighting);
+    assert.equal(Object.keys(metadata.images['image_1.png'].bounding_box_coordinates).length, 2);
+    assert.equal(Object.keys(metadata.images['image_2.png'].bounding_box_coordinates).length, 1);
+    assert.equal(completeAnnotationEdit(result.batch, secondImage.id, [], { width: 200, height: 100 }).batch.images[1].annotations.length, 0);
+  }
+});
+
+test('schema 4 annotations still load alongside the new instance format', () => {
+  const batch = normalizeSavedBatch({ schema_version: 4, classes: ['Test specimen'], images: {
+    'old.jpg': { resolution: { width: 200, height: 100 }, annotations: [{ class_name: 'Test specimen',
+      bbox_yolo: { x_center: 0.5, y_center: 0.4, width: 0.2, height: 0.4 } }] },
+  } }, 'old', { 'old.jpg': 'file:///old.jpg' });
+  assert.equal(batch.images[0].annotations[0].className, 'Test specimen');
+  assert.equal(yoloLine(batch.images[0].annotations[0]), '0 0.500000 0.400000 0.200000 0.400000');
 });

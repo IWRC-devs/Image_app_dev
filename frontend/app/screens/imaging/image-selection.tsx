@@ -1,12 +1,12 @@
 import { PageTransition } from "@/components/PageTransition";
 import { ThemedText } from "@/components/ThemedText";
 import { useRouter } from "expo-router";
-import { View, StyleSheet, TouchableOpacity, Image, useColorScheme } from "react-native";
+import { View, StyleSheet, TouchableOpacity, ScrollView, useColorScheme } from "react-native";
 import { showAlert } from "@/utils/alerts";
 import { Button } from "react-native-paper";
 import * as ImagePicker from 'expo-image-picker';
 import { useBatch } from "../../context/BatchContext";
-import { Ionicons } from "@expo/vector-icons";
+import { AnnotationImageCard } from '@/components/AnnotationImageCard';
 import { prepareImage } from "@/utils/prepareImage";
 
 export default function ImageSelectionScreen() {
@@ -61,7 +61,7 @@ export default function ImageSelectionScreen() {
   return (
     <PageTransition>
     <View style={{ flex: 1, backgroundColor }}>
-      <View style={styles.content}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
         {/* Pick Images Button */}
         <Button mode="outlined" onPress={pickImages} style={styles.pickButton}>
           <ThemedText style={styles.pickButtonText}>Select Images from Device</ThemedText>
@@ -71,32 +71,11 @@ export default function ImageSelectionScreen() {
 
         {/* Selected Images Grid */}
         <View style={styles.grid}>
-          {selectedImages.map((item) => (
-            <View key={item.id} style={styles.imageWrapper}>
-              <TouchableOpacity style={styles.imageButton} onPress={() => annotateImage(item.id)}>
-                <Image source={{ uri: item.uri }} style={styles.thumbnail} />
-                <View style={styles.annotationBadge}>
-                  <Ionicons name="scan-outline" size={13} color="#fff" />
-                  <ThemedText style={styles.annotationBadgeText}>
-                    {item.annotations?.length ?? 0}
-                  </ThemedText>
-                </View>
-              </TouchableOpacity>
-
-              {/* Remove button */}
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => removeImage(item.id)}
-              >
-                <Ionicons name="close-circle" size={24} color="red" />
-              </TouchableOpacity>
-            </View>
+          {selectedImages.map((item, index) => (
+            <AnnotationImageCard key={item.id} image={item} index={index} weedName={batchData.botanicalName}
+              onAnnotate={() => annotateImage(item.id)} onRemove={() => removeImage(item.id)} />
           ))}
         </View>
-
-        {selectedImages.length > 0 && (
-          <ThemedText style={styles.annotationHint}>Tap a photo to annotate weeds.</ThemedText>
-        )}
 
         {/* Continue and Clear buttons */}
         {selectedImages.length > 0 && (
@@ -130,7 +109,7 @@ export default function ImageSelectionScreen() {
           </View>
         )}
 
-      </View>
+      </ScrollView>
     </View>
     </PageTransition>
   );
@@ -147,7 +126,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: 16,
     backgroundColor: "rgba(0,0,0,0.5)",
   },
@@ -195,60 +174,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
-    gap: 8,
-  },
-  imageWrapper: {
-    width: '28%',          // three images per row
-    aspectRatio: 1,
-    marginBottom: 12,      // vertical spacing
-    marginRight: 12,       // horizontal spacing
-    position: 'relative',
-  },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
-  },
-  imageButton: {
-    width: '100%',
-    height: '100%',
-  },
-  annotationBadge: {
-    position: 'absolute',
-    left: 5,
-    bottom: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  annotationBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  annotationHint: {
-    color: '#fff',
-    marginTop: 2,
-  },
-  removeButton: {
-    position: 'absolute',
-    top: -10,
-    right: -10,
-    backgroundColor: 'white',
-    borderRadius: 60,
-    width: 25,
-    height: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  removeText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
+    gap: 12,
   },
 });

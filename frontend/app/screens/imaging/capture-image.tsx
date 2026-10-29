@@ -1,11 +1,12 @@
 import { PageTransition } from "@/components/PageTransition";
 import { ThemedText } from "@/components/ThemedText";
 import { useRouter } from "expo-router";
-import { SafeAreaView, ScrollView, View, StyleSheet, TouchableOpacity, Image, Platform } from "react-native";
+import { SafeAreaView, ScrollView, View, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import { showAlert } from "@/utils/alerts";
 import { Button } from "react-native-paper";
 import * as ImagePicker from 'expo-image-picker';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
+import { AnnotationImageCard } from '@/components/AnnotationImageCard';
 import { ImageItem, useBatch } from "../../context/BatchContext";
 import { prepareImage } from "@/utils/prepareImage";
 
@@ -82,25 +83,11 @@ export default function CaptureImageScreen() {
             <ThemedText style={styles.heading}>Captured Images ({capturedImages.length})</ThemedText>
 
             <View style={styles.grid}>
-              {capturedImages.map((item) => (
-                <View key={item.id} style={styles.imageWrapper}>
-                  <TouchableOpacity style={styles.imageButton} onPress={() => annotateImage(item.id)}>
-                    <Image source={{ uri: item.uri }} style={styles.thumbnail} />
-                    <View style={styles.annotationBadge}>
-                      <Ionicons name="scan-outline" size={13} color="#fff" />
-                      <ThemedText style={styles.annotationBadgeText}>
-                        {item.annotations?.length ?? 0}
-                      </ThemedText>
-                    </View>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.removeButton} onPress={() => removeImage(item.id)}>
-                  <Ionicons name="close-circle" size={24} color="red" />
-                  </TouchableOpacity>
-                </View>
+              {capturedImages.map((item, index) => (
+                <AnnotationImageCard key={item.id} image={item} index={index} weedName={batchData.botanicalName}
+                  onAnnotate={() => annotateImage(item.id)} onRemove={() => removeImage(item.id)} />
               ))}
             </View>
-
-            <ThemedText style={styles.annotationHint}>Tap a photo to annotate weeds.</ThemedText>
 
             {/* Continue & Clear All */}
             <View style={{ marginTop: 16 }}>
@@ -158,57 +145,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
-  },
-  imageWrapper: {
-    position: 'relative',
-    width: 100,
-    height: 100,
-    margin: 6,
-  },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
-  },
-  imageButton: {
-    width: '100%',
-    height: '100%',
-  },
-  annotationBadge: {
-    position: 'absolute',
-    left: 5,
-    bottom: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  annotationBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  annotationHint: {
-    marginTop: 4,
-    marginLeft: 6,
-  },
-  removeButton: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  removeText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    gap: 12,
   },
   continueButton: {
     marginTop: 12,
