@@ -1,190 +1,268 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Image,
-  LayoutChangeEvent,
-  PanResponder,
-  Pressable,
-  SafeAreaView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import uuid from "react-native-uuid";
+  GestureResponderEvent, Image, PanResponder, Platform, SafeAreaView, StyleSheet,
+  TouchableOpacity, View, ViewStyle,
+} from 'react-native';
+import uuid from 'react-native-uuid';
 
-import { useBatch } from "@/app/context/BatchContext";
-import { ThemedText } from "@/components/ThemedText";
-import { BoundingBoxAnnotation } from "@/types";
+import { useBatch } from '@/app/context/BatchContext';
+import { ThemedText } from '@/components/ThemedText';
+import type { BoundingBoxAnnotation, ImageItem } from '@/types';
 import { completeAnnotationEdit } from '@/utils/annotationEditing';
 import { showAlert } from '@/utils/alerts';
+import {
+  AnnotationHistory, CanvasView, Corner, ImageFrame, Point, Size,
+  MAX_ZOOM, boxFrame, constrainView, containsPoint, cornerPoints, createHistory, drawBox, fitView,
+  hitBox, imageFrame, imagePoint, moveBox, panView, recordEdit, redoEdit, resizeBox, undoEdit, zoomView,
+} from '@/utils/annotationCanvas';
 
-const MIN_BOX_SIZE = 0.04;
-const HANDLE_SIZE = 26;
+type Mode = 'draw' | 'edit' | 'pan';
+type Gesture =
+  | { kind: 'draw'; before: AnnotationHistory; start: Point; frame: ImageFrame; id: string }
+  | { kind: 'edit'; before: AnnotationHistory; start: Point; frame: ImageFrame; box: BoundingBoxAnnotation; corner?: Corner }
+  | { kind: 'pan'; start: Point; view: CanvasView }
+  | { kind: 'pinch'; midpoint: Point; distance: number; view: CanvasView };
 
-type Size = { width: number; height: number };
-type Corner = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+const midpoint = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+const webGestureStyle: (ViewStyle & { touchAction: string; userSelect: string }) | undefined = Platform.OS === 'web'
+  ? { touchAction: 'none', userSelect: 'none' } : undefined;
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
+function ToolButton({ label, icon, onPress, disabled = false, active = false, compact = false }: {
+  label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void;
+  disabled?: boolean; active?: boolean; compact?: boolean;
+}) {
+  return (
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel={label}
+      accessibilityState={{ disabled, selected: active }} disabled={disabled} onPress={onPress}
+      style={[styles.toolButton, compact && styles.compactButton, active && styles.activeButton, disabled && styles.disabledButton]}>
+      <Ionicons name={icon} size={19} color="#fff" />
+      {!compact && <ThemedText style={styles.buttonText}>{label}</ThemedText>}
+    </TouchableOpacity>
+  );
 }
 
-function makeDefaultBox(className?: string | null): BoundingBoxAnnotation {
-  return {
-    id: uuid.v4() as string,
-    classId: 0,
-    className: className || "weed_of_interest",
-    xCenter: 0.5,
-    yCenter: 0.5,
-    width: 0.4,
-    height: 0.4,
+function AnnotationCanvas({ image, weedName, onDone }: {
+  image: ImageItem; weedName: string; onDone: (boxes: BoundingBoxAnnotation[], source: Size) => void;
+}) {
+  const [source, setSource] = useState<Size>({ width: image.width || 1, height: image.height || 1 });
+  const [sizeReady, setSizeReady] = useState(Boolean(image.width && image.height));
+  const [viewport, setViewport] = useState<Size>({ width: 0, height: 0 });
+  const [history, setHistory] = useState(() => createHistory(image.annotations));
+  const [view, setView] = useState(fitView);
+  const [mode, setMode] = useState<Mode>(image.annotations?.length ? 'edit' : 'draw');
+  const historyRef = useRef(history);
+  const viewRef = useRef(view);
+  const gesture = useRef<Gesture | null>(null);
+  const origin = useRef<Point>({ x: 0, y: 0 });
+
+  const updateHistory = (next: AnnotationHistory) => { historyRef.current = next; setHistory(next); };
+  const updateView = (next: CanvasView) => { viewRef.current = next; setView(next); };
+
+  useEffect(() => {
+    if (image.width && image.height) return;
+    let active = true;
+    Image.getSize(image.uri, (width, height) => {
+      if (active) { setSource({ width, height }); setSizeReady(true); }
+    }, () => { if (active) showAlert('Image size unavailable', 'Please reopen this image before annotating it.'); });
+    return () => { active = false; };
+  }, [image.width, image.height, image.uri]);
+
+  const frame = imageFrame(source, viewport, view);
+
+  const cancelGesture = () => {
+    const current = gesture.current;
+    if (current?.kind === 'draw' || current?.kind === 'edit') updateHistory(current.before);
+    gesture.current = null;
   };
-}
+  const localTouches = (event: GestureResponderEvent): Point[] =>
+    Array.from(event.nativeEvent.touches).map(touch => ({ x: touch.pageX - origin.current.x,
+      y: touch.pageY - origin.current.y }));
+  const eventPoint = (event: GestureResponderEvent): Point => ({
+    x: event.nativeEvent.pageX - origin.current.x, y: event.nativeEvent.pageY - origin.current.y,
+  });
+  const startPinch = (points: Point[]) => {
+    cancelGesture();
+    gesture.current = { kind: 'pinch', midpoint: midpoint(points[0], points[1]),
+      distance: Math.max(1, distance(points[0], points[1])), view: viewRef.current };
+  };
 
-function CornerHandle({
-  corner,
-  box,
-  canvas,
-  onChange,
-}: {
-  corner: Corner;
-  box: BoundingBoxAnnotation;
-  canvas: Size;
-  onChange: (box: BoundingBoxAnnotation) => void;
-}) {
-  const boxRef = useRef(box);
-  const startRef = useRef(box);
-  boxRef.current = box;
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+  const startGesture = (event: GestureResponderEvent) => {
+    if (!sizeReady) return;
+    const native = event.nativeEvent;
+    origin.current = { x: native.pageX - native.locationX, y: native.pageY - native.locationY };
+    const points = localTouches(event);
+    if (points.length >= 2) { startPinch(points); return; }
+    const point = eventPoint(event);
+    const currentFrame = imageFrame(source, viewport, viewRef.current);
+    if (!currentFrame.width || !currentFrame.height) return;
+    if (mode === 'pan') { gesture.current = { kind: 'pan', start: point, view: viewRef.current }; return; }
+    const before = historyRef.current;
+    if (mode === 'draw') {
+      if (containsPoint(point, currentFrame)) gesture.current = {
+        kind: 'draw', before, start: point, frame: currentFrame, id: uuid.v4() as string,
+      };
+      return;
+    }
+    const hit = hitBox(before.present, point, currentFrame);
+    updateHistory({ ...before, present: { ...before.present, selectedId: hit?.box.id ?? null } });
+    if (hit) gesture.current = { kind: 'edit', before, start: point, frame: currentFrame, ...hit };
+  };
 
-  const responder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: () => {
-          startRef.current = boxRef.current;
-        },
-        onPanResponderMove: (_, gesture) => {
-          const start = startRef.current;
-          let left = start.xCenter - start.width / 2;
-          let right = start.xCenter + start.width / 2;
-          let top = start.yCenter - start.height / 2;
-          let bottom = start.yCenter + start.height / 2;
-          const dx = gesture.dx / canvas.width;
-          const dy = gesture.dy / canvas.height;
+  const moveGesture = (event: GestureResponderEvent) => {
+    const points = localTouches(event);
+    if (points.length >= 2) {
+      if (gesture.current?.kind !== 'pinch') startPinch(points);
+      const pinch = gesture.current;
+      if (pinch?.kind === 'pinch') updateView(zoomView(source, viewport, pinch.view,
+        pinch.view.zoom * distance(points[0], points[1]) / pinch.distance,
+        pinch.midpoint, midpoint(points[0], points[1])));
+      return;
+    }
+    const current = gesture.current;
+    if (!current) return;
+    const point = eventPoint(event);
+    if (current.kind === 'pinch') return;
+    if (current.kind === 'pan') {
+      updateView(panView(source, viewport, current.view,
+        { x: point.x - current.start.x, y: point.y - current.start.y }));
+      return;
+    }
+    if (current.kind === 'draw') {
+      const box = distance(current.start, point) >= 3
+        ? drawBox(current.id, weedName, imagePoint(current.start, current.frame), imagePoint(point, current.frame), source) : null;
+      updateHistory({ ...current.before, present: { boxes: box
+        ? [...current.before.present.boxes, box] : current.before.present.boxes,
+        selectedId: box?.id ?? current.before.present.selectedId } });
+      return;
+    }
+    const delta = { x: (point.x - current.start.x) / current.frame.width,
+      y: (point.y - current.start.y) / current.frame.height };
+    const box = current.corner ? resizeBox(current.box, current.corner, delta, source) : moveBox(current.box, delta);
+    updateHistory({ ...current.before, present: { selectedId: box.id,
+      boxes: current.before.present.boxes.map(item => item.id === box.id ? box : item) } });
+  };
 
-          if (corner === "topLeft" || corner === "bottomLeft") {
-            left = clamp(left + dx, 0, right - MIN_BOX_SIZE);
-          } else {
-            right = clamp(right + dx, left + MIN_BOX_SIZE, 1);
-          }
+  const finishGesture = () => {
+    const current = gesture.current;
+    if (current?.kind === 'draw' || current?.kind === 'edit') {
+      updateHistory(recordEdit(current.before, historyRef.current.present));
+    }
+    gesture.current = null;
+  };
+  // Keep native handlers stable while reading the latest state through callbacks/refs.
+  const callbacks = useRef({ startGesture, moveGesture, finishGesture, cancelGesture, startPinch, localTouches });
+  callbacks.current = { startGesture, moveGesture, finishGesture, cancelGesture, startPinch, localTouches };
+  const responder = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: event => callbacks.current.startGesture(event),
+    onPanResponderStart: event => {
+      const points = callbacks.current.localTouches(event);
+      if (points.length >= 2) callbacks.current.startPinch(points);
+    },
+    onPanResponderMove: event => callbacks.current.moveGesture(event),
+    onPanResponderEnd: event => {
+      const points = callbacks.current.localTouches(event);
+      // After a pinch, the remaining finger pans; it must never draw or edit a box.
+      if (gesture.current?.kind === 'pinch' && points.length === 1) {
+        gesture.current = { kind: 'pan', start: points[0], view: viewRef.current };
+      }
+    },
+    onPanResponderRelease: () => callbacks.current.finishGesture(),
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderTerminate: () => callbacks.current.cancelGesture(),
+  }), []);
 
-          if (corner === "topLeft" || corner === "topRight") {
-            top = clamp(top + dy, 0, bottom - MIN_BOX_SIZE);
-          } else {
-            bottom = clamp(bottom + dy, top + MIN_BOX_SIZE, 1);
-          }
-
-          onChangeRef.current({
-            ...start,
-            xCenter: (left + right) / 2,
-            yCenter: (top + bottom) / 2,
-            width: right - left,
-            height: bottom - top,
-          });
-        },
-      }),
-    [canvas.height, canvas.width, corner]
-  );
-
-  return <View style={[styles.handle, styles[corner]]} {...responder.panHandlers} />;
-}
-
-function BoundingBox({
-  box,
-  canvas,
-  weedName,
-  selected,
-  onSelect,
-  onChange,
-}: {
-  box: BoundingBoxAnnotation;
-  canvas: Size;
-  weedName: string;
-  selected: boolean;
-  onSelect: () => void;
-  onChange: (box: BoundingBoxAnnotation) => void;
-}) {
-  const boxRef = useRef(box);
-  const startRef = useRef(box);
-  boxRef.current = box;
-  const callbacks = useRef({ onSelect, onChange });
-  callbacks.current = { onSelect, onChange };
-
-  const moveResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
-        onPanResponderGrant: () => {
-          callbacks.current.onSelect();
-          startRef.current = boxRef.current;
-        },
-        onPanResponderMove: (_, gesture) => {
-          const start = startRef.current;
-          callbacks.current.onChange({
-            ...start,
-            xCenter: clamp(
-              start.xCenter + gesture.dx / canvas.width,
-              start.width / 2,
-              1 - start.width / 2
-            ),
-            yCenter: clamp(
-              start.yCenter + gesture.dy / canvas.height,
-              start.height / 2,
-              1 - start.height / 2
-            ),
-          });
-        },
-      }),
-    [canvas.height, canvas.width]
-  );
-
-  const left = (box.xCenter - box.width / 2) * canvas.width;
-  const top = (box.yCenter - box.height / 2) * canvas.height;
+  const boxes = history.present.boxes;
+  const selectedIndex = boxes.findIndex(box => box.id === history.present.selectedId);
+  const selected = boxes[selectedIndex];
+  const deleteSelected = () => {
+    if (!selected) return;
+    const remaining = boxes.filter(box => box.id !== selected.id);
+    updateHistory(recordEdit(historyRef.current, { boxes: remaining,
+      selectedId: remaining[Math.min(selectedIndex, remaining.length - 1)]?.id ?? null }));
+  };
+  const nextBox = () => {
+    if (!boxes.length) return;
+    const next = boxes[(selectedIndex + 1) % boxes.length];
+    setMode('edit');
+    updateHistory({ ...historyRef.current, present: { ...historyRef.current.present,
+      selectedId: next.id } });
+    const rectangle = boxFrame(next, imageFrame(source, viewport, viewRef.current));
+    updateView(zoomView(source, viewport, viewRef.current, viewRef.current.zoom,
+      { x: rectangle.left + rectangle.width / 2, y: rectangle.top + rectangle.height / 2 },
+      { x: viewport.width / 2, y: viewport.height / 2 }));
+  };
+  const instructions = mode === 'draw' ? 'Drag from one corner of the plant to the opposite corner to draw a box.'
+    : mode === 'edit' ? 'Tap a box to select it. Drag inside to move it, or drag a corner to resize.'
+      : 'Drag to move the image. Switch to Draw box or Edit boxes to annotate.';
 
   return (
-    <View
-      pointerEvents="box-none"
-      style={[
-        styles.box,
-        {
-          left,
-          top,
-          width: box.width * canvas.width,
-          height: box.height * canvas.height,
-          borderColor: selected ? "#00E676" : "#FFEB3B",
-        },
-      ]}
-    >
-      <View style={styles.dragSurface} {...moveResponder.panHandlers}>
-        <ThemedText style={[styles.boxLabel, { top: top < 24 ? 3 : -24, maxWidth: canvas.width - left }]} numberOfLines={1}>{weedName}</ThemedText>
+    <SafeAreaView style={styles.screen}>
+      <View style={styles.instructions}>
+        <ThemedText style={styles.title} numberOfLines={1}>{weedName}</ThemedText>
+        <ThemedText style={styles.helpText}>{instructions} Pinch or use +/− to zoom.</ThemedText>
+        <ThemedText style={styles.imageInfo}>
+          {source.width} × {source.height} px · {boxes.length} {boxes.length === 1 ? 'box' : 'boxes'}
+          {selected ? ` · Selected: instance ${selectedIndex + 1}` : ''}
+        </ThemedText>
       </View>
-      {selected &&
-        (["topLeft", "topRight", "bottomLeft", "bottomRight"] as Corner[]).map(
-          (corner) => (
-            <CornerHandle
-              key={corner}
-              corner={corner}
-              box={box}
-              canvas={canvas}
-              onChange={onChange}
-            />
-          )
+      <View style={styles.modeBar}>
+        <ToolButton label="Draw box" icon="create-outline" active={mode === 'draw'} onPress={() => setMode('draw')} />
+        <ToolButton label="Edit boxes" icon="scan-outline" active={mode === 'edit'} onPress={() => setMode('edit')} />
+        <ToolButton label="Move image" icon="hand-left-outline" active={mode === 'pan'} onPress={() => setMode('pan')} />
+      </View>
+      <View style={styles.viewport} onLayout={event => {
+        cancelGesture();
+        const size = { width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height };
+        setViewport(size);
+        updateView(constrainView(source, size, viewRef.current));
+      }}>
+        {frame.width > 0 && frame.height > 0 && (
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <Image source={{ uri: image.uri }} resizeMode="stretch"
+              style={{ position: 'absolute', left: frame.left, top: frame.top, width: frame.width, height: frame.height }} />
+            {boxes.map((box, index) => {
+              const rectangle = boxFrame(box, frame);
+              const isSelected = box.id === history.present.selectedId;
+              return (
+                <View key={box.id} style={[styles.box, rectangle, { borderColor: isSelected ? '#00E676' : '#FFEB3B' }]}>
+                  <ThemedText numberOfLines={1} style={[styles.boxLabel, { maxWidth: frame.width,
+                    top: rectangle.top < 24 ? 2 : -23 }]}>{weedName} · {index + 1}</ThemedText>
+                </View>
+              );
+            })}
+            {selected && mode === 'edit' && cornerPoints(boxFrame(selected, frame)).map(({ corner, point }) => (
+              <View key={corner} style={[styles.handle, { left: point.x - 13, top: point.y - 13 }]} />
+            ))}
+          </View>
         )}
-    </View>
+        <View style={[StyleSheet.absoluteFill, webGestureStyle]}
+          accessibilityLabel="Annotation canvas. Use Draw box to draw, Edit boxes to move or resize, and Move image to pan."
+          {...responder.panHandlers} />
+      </View>
+      <View style={styles.zoomBar}>
+        <ToolButton label="Zoom out" compact icon="remove" disabled={view.zoom <= 1}
+          onPress={() => updateView(zoomView(source, viewport, viewRef.current, viewRef.current.zoom / 1.5))} />
+        <ThemedText style={styles.zoomText}>{Math.round(view.zoom * 100)}%</ThemedText>
+        <ToolButton label="Zoom in" compact icon="add" disabled={view.zoom >= MAX_ZOOM}
+          onPress={() => updateView(zoomView(source, viewport, viewRef.current, viewRef.current.zoom * 1.5))} />
+        <ToolButton label="Fit" icon="expand-outline" onPress={() => updateView(fitView())} />
+      </View>
+      <View style={styles.toolbar}>
+        <ToolButton label="Undo" icon="arrow-undo" disabled={!history.past.length}
+          onPress={() => updateHistory(undoEdit(historyRef.current))} />
+        <ToolButton label="Redo" icon="arrow-redo" disabled={!history.future.length}
+          onPress={() => updateHistory(redoEdit(historyRef.current))} />
+        <ToolButton label="Next box" icon="layers-outline" disabled={!boxes.length} onPress={nextBox} />
+        <ToolButton label="Delete box" icon="trash-outline" disabled={!selected} onPress={deleteSelected} />
+        <ToolButton label="Done" icon="checkmark" active disabled={!sizeReady}
+          onPress={() => onDone(historyRef.current.present.boxes, source)} />
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -192,251 +270,45 @@ export default function AnnotationEditorScreen() {
   const { imageId } = useLocalSearchParams<{ imageId: string }>();
   const router = useRouter();
   const { batchData, setBatchData } = useBatch();
-  const image = batchData?.images.find((item) => item.id === imageId);
-  const [viewport, setViewport] = useState<Size>({ width: 0, height: 0 });
-  const [sourceSize, setSourceSize] = useState<Size>({
-    width: image?.width || 1,
-    height: image?.height || 1,
-  });
-  const [boxes, setBoxes] = useState<BoundingBoxAnnotation[]>(() =>
-    image?.annotations ?? [makeDefaultBox(batchData?.botanicalName)]
+  const image = batchData?.images.find(item => item.id === imageId);
+  if (!batchData || !image) return (
+    <SafeAreaView style={styles.screen}><ThemedText style={styles.errorText}>This image is no longer available.</ThemedText></SafeAreaView>
   );
-  const [selectedId, setSelectedId] = useState<string | null>(() => boxes[0]?.id ?? null);
-  const previousImageId = useRef(image?.id);
-
-  useEffect(() => {
-    if (previousImageId.current === image?.id) return;
-    previousImageId.current = image?.id;
-    const annotations = image?.annotations ?? [makeDefaultBox(batchData?.botanicalName)];
-    setBoxes(annotations);
-    setSelectedId(annotations[0]?.id ?? null);
-    setSourceSize({ width: image?.width || 1, height: image?.height || 1 });
-  }, [image, batchData?.botanicalName]);
-
-  useEffect(() => {
-    if (!image || (image.width && image.height)) return;
-    let active = true;
-    Image.getSize(image.uri, (width, height) => {
-      if (active) setSourceSize({ width, height });
-    }, () => {});
-    return () => { active = false; };
-  }, [image]);
-
-  if (!batchData || !image) {
-    return (
-      <SafeAreaView style={styles.screen}>
-        <ThemedText style={styles.errorText}>This image is no longer available.</ThemedText>
-      </SafeAreaView>
-    );
-  }
-
-  const updateBox = (updated: BoundingBoxAnnotation) => {
-    setBoxes((current) => current.map((box) => (box.id === updated.id ? updated : box)));
-  };
-
-  const addBox = () => {
-    const box = makeDefaultBox(batchData.botanicalName);
-    setBoxes((current) => [...current, box]);
-    setSelectedId(box.id);
-  };
-
-  const deleteSelected = () => {
-    if (!selectedId) return;
-    setBoxes((current) => current.filter((box) => box.id !== selectedId));
-    setSelectedId(null);
-  };
-
-  const saveAnnotations = () => {
-    try {
-      const result = completeAnnotationEdit(batchData, image.id, boxes, sourceSize);
-      setBatchData(result.batch);
-      router.replace(result.route);
-    } catch (error) {
-      showAlert('Unable to keep annotations', error instanceof Error ? error.message : 'Please check your boxes and try again.');
-    }
-  };
-
-  const onViewportLayout = (event: LayoutChangeEvent) => {
-    const { width, height } = event.nativeEvent.layout;
-    setViewport({ width, height });
-  };
-
-  const sourceRatio = sourceSize.width / sourceSize.height;
-  const viewportRatio = viewport.width && viewport.height ? viewport.width / viewport.height : 1;
-  const canvas =
-    sourceRatio > viewportRatio
-      ? { width: viewport.width, height: viewport.width / sourceRatio }
-      : { width: viewport.height * sourceRatio, height: viewport.height };
-
-  return (
-    <SafeAreaView style={styles.screen}>
-      <View style={styles.instructions}>
-        <ThemedText style={styles.title}>{batchData.botanicalName || 'Weed of interest'}</ThemedText>
-        <ThemedText style={styles.helpText}>
-          Drag inside a box to move it. Drag any corner to resize it.
-        </ThemedText>
-        <ThemedText style={styles.imageInfo}>
-          {sourceSize.width} × {sourceSize.height} px · {boxes.length ? `${boxes.length} ${boxes.length === 1 ? 'box' : 'boxes'}` : 'No boxes'}
-        </ThemedText>
-      </View>
-
-      <View style={styles.viewport} onLayout={onViewportLayout}>
-        {canvas.width > 0 && canvas.height > 0 && (
-          <Pressable style={[styles.canvas, canvas]} onPress={() => setSelectedId(null)}>
-            <Image source={{ uri: image.uri }} style={StyleSheet.absoluteFill} resizeMode="contain" />
-            {boxes.map((box) => (
-              <BoundingBox
-                key={box.id}
-                box={box}
-                canvas={canvas}
-                weedName={batchData.botanicalName || box.className || 'Weed of interest'}
-                selected={box.id === selectedId}
-                onSelect={() => setSelectedId(box.id)}
-                onChange={updateBox}
-              />
-            ))}
-          </Pressable>
-        )}
-      </View>
-
-      <View style={styles.toolbar}>
-        <TouchableOpacity style={styles.secondaryButton} onPress={addBox}>
-          <Ionicons name="add" size={22} color="#fff" />
-          <ThemedText style={styles.buttonText}>Add box</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.secondaryButton, !selectedId && styles.disabledButton]}
-          onPress={deleteSelected}
-          disabled={!selectedId}
-        >
-          <Ionicons name="trash-outline" size={20} color="#fff" />
-          <ThemedText style={styles.buttonText}>Delete</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.saveButton} onPress={saveAnnotations}>
-          <Ionicons name="checkmark" size={22} color="#fff" />
-          <ThemedText style={styles.buttonText}>Done</ThemedText>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
+  return <AnnotationCanvas key={image.id} image={image} weedName={batchData.botanicalName || 'Weed of interest'}
+    onDone={(boxes, source) => {
+      try {
+        const result = completeAnnotationEdit(batchData, image.id, boxes, source);
+        setBatchData(result.batch);
+        router.replace(result.route);
+      } catch (error) {
+        showAlert('Unable to keep annotations', error instanceof Error ? error.message : 'Please check your boxes and try again.');
+      }
+    }} />;
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: "#101820",
-  },
-  instructions: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
-  title: {
-    color: "#fff",
-    fontSize: 19,
-    fontWeight: "700",
-  },
-  helpText: {
-    color: "#D5DEE3",
-    marginTop: 4,
-  },
-  imageInfo: {
-    color: "#9FB2BC",
-    fontSize: 13,
-    marginTop: 5,
-  },
-  viewport: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  canvas: {
-    position: "relative",
-    backgroundColor: "#000",
-  },
-  box: {
-    position: "absolute",
-    borderWidth: 3,
-  },
-  dragSurface: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,230,118,0.08)",
-  },
-  boxLabel: {
-    position: "absolute",
-    left: -3,
-    top: -24,
-    minWidth: 22,
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    color: "#101820",
-    backgroundColor: "#00E676",
-    fontSize: 12,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  handle: {
-    position: "absolute",
-    width: HANDLE_SIZE,
-    height: HANDLE_SIZE,
-    borderRadius: HANDLE_SIZE / 2,
-    borderWidth: 3,
-    borderColor: "#101820",
-    backgroundColor: "#00E676",
-  },
-  topLeft: {
-    left: -HANDLE_SIZE / 2,
-    top: -HANDLE_SIZE / 2,
-  },
-  topRight: {
-    right: -HANDLE_SIZE / 2,
-    top: -HANDLE_SIZE / 2,
-  },
-  bottomLeft: {
-    left: -HANDLE_SIZE / 2,
-    bottom: -HANDLE_SIZE / 2,
-  },
-  bottomRight: {
-    right: -HANDLE_SIZE / 2,
-    bottom: -HANDLE_SIZE / 2,
-  },
-  toolbar: {
-    flexDirection: "row",
-    gap: 10,
-    padding: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#40515A",
-  },
-  secondaryButton: {
-    flex: 1,
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-    borderRadius: 8,
-    backgroundColor: "#40515A",
-  },
-  saveButton: {
-    flex: 1,
-    minHeight: 48,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 5,
-    borderRadius: 8,
-    backgroundColor: "#2E7D32",
-  },
-  disabledButton: {
-    opacity: 0.4,
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "700",
-  },
-  errorText: {
-    color: "#fff",
-    padding: 24,
-  },
+  screen: { flex: 1, backgroundColor: '#101820' },
+  instructions: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
+  title: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  helpText: { color: '#D5DEE3', fontSize: 13, lineHeight: 18, marginTop: 3 },
+  imageInfo: { color: '#B5C4CD', fontSize: 12, marginTop: 3 },
+  modeBar: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 10, paddingBottom: 8 },
+  viewport: { flex: 1, minHeight: 100, overflow: 'hidden', backgroundColor: '#000' },
+  box: { position: 'absolute', borderWidth: 2, backgroundColor: 'rgba(0,230,118,0.06)' },
+  boxLabel: { position: 'absolute', left: -2, paddingHorizontal: 4, backgroundColor: '#00E676',
+    color: '#101820', fontSize: 12, lineHeight: 20, fontWeight: '700' },
+  handle: { position: 'absolute', width: 26, height: 26, borderRadius: 13,
+    borderWidth: 2, borderColor: '#101820', backgroundColor: '#00E676' },
+  zoomBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 6 },
+  zoomText: { color: '#fff', minWidth: 48, textAlign: 'center', fontSize: 13 },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 8,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#40515A' },
+  toolButton: { flexGrow: 1, minHeight: 44, minWidth: 44, paddingHorizontal: 9, paddingVertical: 7,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
+    borderRadius: 7, backgroundColor: '#40515A' },
+  compactButton: { flexGrow: 0 },
+  activeButton: { backgroundColor: '#236B3A', borderWidth: 1, borderColor: '#66DC8E' },
+  disabledButton: { opacity: 0.35 },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  errorText: { color: '#fff', padding: 24 },
 });
