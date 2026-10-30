@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { showAlert } from '@/utils/alerts';
@@ -10,8 +10,12 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { StoredBatch } from '@/types';
 import { deleteBatch, getSavedBatches } from '@/utils/batchStore';
+import { useBatch } from '@/app/context/BatchContext';
+import { openSavedBatch } from '@/utils/savedBatchEditing';
 
 export default function SavedBatchesScreen() {
+  const router = useRouter();
+  const { setBatchData } = useBatch();
   const [batches, setBatches] = useState<StoredBatch[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +56,15 @@ export default function SavedBatchesScreen() {
     );
   };
 
+  const handleOpen = (batch: StoredBatch) => {
+    try {
+      setBatchData(openSavedBatch(batch));
+      router.push({ pathname: '/screens/imaging/saved-batch', params: { batchId: batch.id! } });
+    } catch (error) {
+      showAlert('Unable to open batch', error instanceof Error ? error.message : 'Please try again.');
+    }
+  };
+
   return (
     <PageTransition>
     <ThemedView style={styles.container}>
@@ -73,15 +86,17 @@ export default function SavedBatchesScreen() {
         ) : (
           batches.map((batch) => (
             <View key={batch.id ?? batch.name} style={styles.batchCard}>
-              <View style={styles.batchInfo}>
+              <View style={styles.batchRow}>
+              <TouchableOpacity style={styles.batchInfo} accessibilityRole="button"
+                accessibilityLabel={`Open ${batch.name} to annotate`} onPress={() => handleOpen(batch)}>
                 <ThemedText style={styles.batchName}>{batch.name}</ThemedText>
                 <ThemedText style={styles.batchDetails}>
-                  {batch.images.length} images · {new Date(batch.savedAt).toLocaleString()}
+                  {batch.images.length} {batch.images.length === 1 ? 'image' : 'images'} · {new Date(batch.savedAt).toLocaleString()}
                 </ThemedText>
                 <ThemedText style={styles.location}>
                   {[batch.locationState, batch.locationCountry].filter(Boolean).join(', ')}
                 </ThemedText>
-              </View>
+              </TouchableOpacity>
 
               <View style={styles.actions}>
                 <BatchDownloadButton batch={batch} />
@@ -93,6 +108,12 @@ export default function SavedBatchesScreen() {
                   <Ionicons name="trash-outline" size={24} color="#ff5a5f" />
                 </TouchableOpacity>
               </View>
+              </View>
+              <TouchableOpacity style={styles.openButton} accessibilityRole="button"
+                accessibilityLabel={`Open and annotate ${batch.name}`} onPress={() => handleOpen(batch)}>
+                <Ionicons name="folder-open-outline" size={22} color="#fff" />
+                <ThemedText style={styles.openButtonText}>Open & annotate</ThemedText>
+              </TouchableOpacity>
             </View>
           ))
         )}
@@ -110,13 +131,15 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: 64, gap: 12 },
   emptyText: { color: '#9aa0a6', textAlign: 'center' },
   batchCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)',
     padding: 14,
     borderRadius: 10,
     marginBottom: 12,
   },
+  batchRow: { flexDirection: 'row', alignItems: 'center' },
+  openButton: { marginTop: 14, minHeight: 48, borderRadius: 8, backgroundColor: '#2e7d32',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 10 },
+  openButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   batchInfo: { flex: 1 },
   batchName: { fontWeight: '700', fontSize: 16, marginBottom: 5 },
   batchDetails: { color: '#aaa', fontSize: 13 },

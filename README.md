@@ -31,6 +31,8 @@ Use the download icon on a Saved Batch to export its photos, readable metadata a
 
 In `batch.txt`, schema 5 groups metadata under each saved image filename. Each image has `resolution`, file type/size, available EXIF, and `bounding_box_coordinates` containing `instance_1`, `instance_2`, and so on. Each instance contains the weed name and YOLO-normalized `x_center`, `y_center`, `width`, and `height` (0–1). The matching YOLO label files are also retained. Older annotation formats remain readable; see [the metadata example](docs/batch-metadata-example.json).
 
+To annotate later, go to **Saved Batches → Open & annotate**, then choose a photo's green **Annotate / Edit annotation** button. **Done** saves the annotations back to that same batch and returns to its photo gallery. Existing photo bytes, batch identity, collection metadata, and other images are preserved. Browser downloads include the updated annotations; Android updates the existing TXT files without replacing the photo folder. A failed save keeps the editor open so you can retry. Older saved batches can be annotated without reentering collector details.
+
 **On iOS**, batches are saved instead to the app's private internal document storage (not visible in a file manager), since the Storage Access Framework is Android-only.
 
 Uninstalling the app removes its private internal batches. Batches saved to a user-selected Android folder (the normal path) are untouched by uninstalling, since they live outside the app's private storage.

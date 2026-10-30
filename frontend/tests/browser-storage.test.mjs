@@ -1,7 +1,11 @@
 import 'fake-indexeddb/auto';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { saveBatch, getSavedBatches, deleteBatch } from '../utils/batchStore.web.ts';
+import { saveBatch, getSavedBatches, deleteBatch, saveBatchAnnotations } from '../utils/batchStore.web.ts';
+import { openSavedBatch, saveOpenedBatch } from '../utils/savedBatchEditing.ts';
+import { completeAnnotationEdit } from '../utils/annotationEditing.ts';
+import { createBatchArchive } from '../utils/exportBatch.web.ts';
+import { strFromU8, unzipSync } from 'fflate';
 
 const fixture = (id, savedAt = '2026-10-29T12:00:00Z') => ({
   id, name: id, savedAt, synced: false,
@@ -76,4 +80,63 @@ test('browser batches saved before the handoff keep their photos and load withou
   assert.deepEqual(saved.images[0].annotations, []);
   assert.equal(await (await fetch(saved.images[0].uri)).text(), 'old-photo-bytes');
   await deleteBatch('legacy-browser');
+});
+
+test('a saved batch can be reopened, annotated and reloaded without duplicates or changed photos and metadata', async () => {
+  const original = fixture('reopen-existing');
+  original.images.push({ ...structuredClone(original.images[0]), id: 'photo-2', fileName: 'second.png', annotations: [] });
+  await saveBatch(original);
+  const [loaded] = await getSavedBatches();
+  const opened = openSavedBatch(loaded);
+  const originalBoxes = structuredClone(loaded.images[0].annotations);
+  const added = { ...opened.images[0].annotations[0], id: 'extra-box', xCenter: 0.75, width: 0.1 };
+  const completed = completeAnnotationEdit(opened, opened.images[0].id,
+    [...opened.images[0].annotations, added], { width: 200, height: 100 });
+  assert.equal(completed.route, '/screens/imaging/saved-batch');
+  await saveOpenedBatch(completed.batch, saveBatchAnnotations);
+  assert.deepEqual(loaded.images[0].annotations, originalBoxes);
+  const freshPage = await import(`../utils/batchStore.web.ts?reopen=${Date.now()}`);
+  const batches = await freshPage.getSavedBatches();
+  assert.equal(batches.length, 1);
+  const saved = batches[0];
+  assert.equal(saved.id, original.id);
+  assert.equal(saved.name, original.name);
+  assert.equal(saved.savedAt, original.savedAt);
+  for (const field of ['collectorName', 'collectorEmail', 'organization', 'locationCountry', 'locationState',
+    'botanicalName', 'growingEnvironment', 'plantingSystem', 'growthStage', 'soilColor']) {
+    assert.equal(saved[field], original[field]);
+  }
+  assert.equal(saved.editingSavedBatch, undefined);
+  assert.equal(saved.images[0].annotations.length, 2);
+  assert.deepEqual(saved.images[1].annotations, []);
+  for (const [index, image] of saved.images.entries()) {
+    assert.equal(await (await fetch(image.uri)).text(), 'image-bytes');
+    assert.deepEqual(image.exif, original.images[index].exif);
+    assert.equal(image.width, original.images[index].width);
+    assert.equal(image.fileName, original.images[index].fileName);
+  }
+  const archive = unzipSync(await createBatchArchive(saved));
+  assert.equal(strFromU8(archive['image_001.txt']).split('\n').length, 2);
+  const metadata = JSON.parse(strFromU8(archive['batch.txt']));
+  assert.equal(Object.keys(metadata.images['image_001.png'].bounding_box_coordinates).length, 2);
+  assert.equal(metadata.collector.email, original.collectorEmail);
+  // Removing the last boxes is also a durable edit, not a duplicate/new batch.
+  const noBoxes = completeAnnotationEdit(openSavedBatch(saved), saved.images[0].id, [], { width: 200, height: 100 });
+  await saveOpenedBatch(noBoxes.batch, saveBatchAnnotations);
+  assert.deepEqual((await getSavedBatches())[0].images[0].annotations, []);
+  await deleteBatch(original.id);
+});
+
+test('stale saved-batch edits fail without replacing photos or recreating a deleted batch', async () => {
+  const original = fixture('stale-edit');
+  await saveBatch(original);
+  const [loaded] = await getSavedBatches();
+  await assert.rejects(saveBatchAnnotations({ ...loaded, images: [{ ...loaded.images[0], id: 'different-photo' }] }));
+  const [unchanged] = await getSavedBatches();
+  assert.equal(unchanged.images[0].id, original.images[0].id);
+  assert.deepEqual(unchanged.images[0].annotations, original.images[0].annotations);
+  const opened = openSavedBatch(unchanged);
+  await deleteBatch(original.id);
+  await assert.rejects(saveOpenedBatch(opened, saveBatchAnnotations));
+  assert.deepEqual(await getSavedBatches(), []);
 });

@@ -9,7 +9,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build:web": "node ./scripts/build-web.mjs",
-    "test:web": "node --test tests/browser-storage.test.mjs tests/handoff-integration.test.mjs tests/collector-profile.test.mjs tests/annotation-canvas.test.mjs",
+    "test:web": "node --test tests/browser-storage.test.mjs tests/handoff-integration.test.mjs tests/collector-profile.test.mjs tests/annotation-canvas.test.mjs tests/saved-annotations.test.mjs",
     "test:pwa": "node --test tests/pwa-export.test.mjs",
     "publish:web": "node ./scripts/publish-web.mjs",
     "lint": "expo lint"

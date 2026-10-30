@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 
 import type { ImageItem, StoredBatch } from '@/types';
+import { writeSavedAnnotationFiles } from '@/utils/savedAnnotationFiles';
 import { batchClasses, imageExtension, imageMimeType, labelFileName, normalizeSavedBatch as normalizeBatch, toInternalMetadata as serializeBatch, yoloLine } from '@/utils/batchMetadata';
 
 const BATCHES_DIR = `${FileSystem.documentDirectory}batches/`;
@@ -288,4 +289,44 @@ export async function getSavedBatches(): Promise<StoredBatch[]> {
 
 export async function deleteBatch(id: string) {
   return USE_DEVICE_FOLDER ? deleteBatchFromDeviceFolder(id) : deleteBatchInternal(id);
+}
+
+/** Saved-batch editing changes labels and metadata in place, preserving all image files. */
+export async function saveBatchAnnotations(batch: StoredBatch): Promise<StoredBatch> {
+  if (!batch.id) throw new Error('The saved batch could not be identified.');
+  const stored = { ...batch, synced: false };
+  if (USE_DEVICE_FOLDER) {
+    const rootUri = await getRootDirectoryUri(false);
+    const directory = rootUri ? await findChildUri(rootUri, safePathSegment(batch.id)) : null;
+    if (!directory) throw new Error('The saved batch folder is unavailable. Please reopen it from Saved Batches.');
+    const children = await FileSystem.StorageAccessFramework.readDirectoryAsync(directory);
+    const byName = new Map(children.map(uri => [decodeURIComponent(uri).split('/').pop() ?? uri, uri]));
+    return writeSavedAnnotationFiles(stored, {
+      read: async name => {
+        const uri = byName.get(name);
+        return uri ? FileSystem.readAsStringAsync(uri) : null;
+      },
+      write: async (name, content) => {
+        let uri = byName.get(name);
+        if (!uri) {
+          uri = await FileSystem.StorageAccessFramework.createFileAsync(directory, name, 'text/plain');
+          byName.set(name, uri);
+        }
+        await FileSystem.writeAsStringAsync(uri, content);
+      },
+      remove: async name => {
+        const uri = byName.get(name);
+        if (uri) { await FileSystem.StorageAccessFramework.deleteAsync(uri); byName.delete(name); }
+      },
+    }, LIGHTING_OPTIONS);
+  }
+  const directory = `${BATCHES_DIR}${safePathSegment(batch.id)}/`;
+  const info = await FileSystem.getInfoAsync(directory);
+  if (!info.exists || !info.isDirectory) throw new Error('The saved batch folder is unavailable.');
+  const path = (name: string) => name === METADATA_FILE_NAME ? `${directory}${name}` : `${directory}images/${name}`;
+  return writeSavedAnnotationFiles(stored, {
+    read: async name => (await FileSystem.getInfoAsync(path(name))).exists ? FileSystem.readAsStringAsync(path(name)) : null,
+    write: (name, content) => FileSystem.writeAsStringAsync(path(name), content),
+    remove: name => FileSystem.deleteAsync(path(name), { idempotent: true }),
+  }, LIGHTING_OPTIONS);
 }

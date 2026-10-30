@@ -8,16 +8,16 @@ export function AnnotationImageCard({ image, index, weedName, onAnnotate, onRemo
   index: number;
   weedName: string | null;
   onAnnotate: () => void;
-  onRemove: () => void;
+  onRemove?: () => void;
 }) {
   const name = weedName?.trim() || 'Weed of interest';
   return (
     <View style={styles.card}>
       <View style={styles.preview}>
         <Image source={{ uri: image.uri }} style={StyleSheet.absoluteFill} resizeMode="contain" />
-        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove image ${index + 1}`} onPress={onRemove} style={styles.remove}>
+        {onRemove && <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Remove image ${index + 1}`} onPress={onRemove} style={styles.remove}>
           <Ionicons name="close-circle" size={30} color="#ff5a5f" />
-        </TouchableOpacity>
+        </TouchableOpacity>}
       </View>
       <ThemedText style={styles.fileName} numberOfLines={1}>{image.fileName || `Image ${index + 1}`}</ThemedText>
       <ThemedText style={styles.weedName}>{name}</ThemedText>

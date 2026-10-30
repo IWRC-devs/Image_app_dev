@@ -101,3 +101,35 @@ export async function deleteBatch(id: string) {
     }
   }
 }
+
+/** Replace annotations on the existing record without fetching or replacing image blobs. */
+export async function saveBatchAnnotations(batch: StoredBatch): Promise<StoredBatch> {
+  batchClasses(batch);
+  if (!batch.id) throw new Error('The saved batch could not be identified.');
+  const db = await openDatabase();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction('batches', 'readwrite');
+    const store = transaction.objectStore('batches');
+    const request = store.get(batch.id!);
+    request.onsuccess = () => {
+      try {
+        const existing = request.result as BrowserBatch | undefined;
+        if (!existing) throw new Error('This batch is no longer saved on this device.');
+        const edits = new Map(batch.images.map(image => [image.id, image]));
+        if (edits.size !== batch.images.length || existing.images.length !== edits.size ||
+          existing.images.some(image => !edits.has(image.id))) {
+          throw new Error('The saved photos changed. Please reopen the batch before annotating.');
+        }
+        store.put({ ...existing, synced: false, images: existing.images.map(image => ({ ...image,
+          annotations: edits.get(image.id)!.annotations ?? [] })) });
+      } catch (error) {
+        reject(error);
+        transaction.abort();
+      }
+    };
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error ?? new Error('Annotations could not be saved.'));
+    request.onerror = () => reject(request.error);
+  });
+  return { ...batch, synced: false };
+}

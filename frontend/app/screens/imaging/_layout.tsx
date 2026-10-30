@@ -96,6 +96,10 @@ export default function ImagingLayout() {
             }}
           />
           <Tabs.Screen
+            name="saved-batch"
+            options={{ title: 'Saved Batch', href: null, tabBarStyle: { display: 'none' } }}
+          />
+          <Tabs.Screen
             name="pending-uploads"
             options={{
               href: null,

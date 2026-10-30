@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  GestureResponderEvent, Image, PanResponder, Platform, SafeAreaView, StyleSheet,
+  ActivityIndicator, GestureResponderEvent, Image, Modal, PanResponder, Platform, SafeAreaView, StyleSheet,
   TouchableOpacity, View, ViewStyle,
 } from 'react-native';
 import uuid from 'react-native-uuid';
@@ -12,6 +12,8 @@ import { ThemedText } from '@/components/ThemedText';
 import type { BoundingBoxAnnotation, ImageItem } from '@/types';
 import { completeAnnotationEdit } from '@/utils/annotationEditing';
 import { showAlert } from '@/utils/alerts';
+import { saveBatchAnnotations } from '@/utils/batchStore';
+import { saveOpenedBatch } from '@/utils/savedBatchEditing';
 import {
   AnnotationHistory, CanvasView, Corner, ImageFrame, Point, Size,
   MAX_ZOOM, boxFrame, constrainView, containsPoint, cornerPoints, createHistory, drawBox, fitView,
@@ -45,7 +47,7 @@ function ToolButton({ label, icon, onPress, disabled = false, active = false, co
 }
 
 function AnnotationCanvas({ image, weedName, onDone }: {
-  image: ImageItem; weedName: string; onDone: (boxes: BoundingBoxAnnotation[], source: Size) => void;
+  image: ImageItem; weedName: string; onDone: (boxes: BoundingBoxAnnotation[], source: Size) => void | Promise<void>;
 }) {
   const [source, setSource] = useState<Size>({ width: image.width || 1, height: image.height || 1 });
   const [sizeReady, setSizeReady] = useState(Boolean(image.width && image.height));
@@ -270,24 +272,53 @@ export default function AnnotationEditorScreen() {
   const { imageId } = useLocalSearchParams<{ imageId: string }>();
   const router = useRouter();
   const { batchData, setBatchData } = useBatch();
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [editorSession, setEditorSession] = useState(0);
+  // Tab screens remain mounted. Each visit must start from the current batch,
+  // including when two saved batches both contain an image with legacy ID "0".
+  useFocusEffect(useCallback(() => { setEditorSession(current => current + 1); }, []));
   const image = batchData?.images.find(item => item.id === imageId);
   if (!batchData || !image) return (
     <SafeAreaView style={styles.screen}><ThemedText style={styles.errorText}>This image is no longer available.</ThemedText></SafeAreaView>
   );
-  return <AnnotationCanvas key={image.id} image={image} weedName={batchData.botanicalName || 'Weed of interest'}
-    onDone={(boxes, source) => {
+  return <View style={styles.screen}>
+    <AnnotationCanvas key={`${batchData.id ?? batchData.name}:${image.id}:${editorSession}`}
+      image={image} weedName={batchData.botanicalName || 'Weed of interest'}
+    onDone={async (boxes, source) => {
+      if (savingRef.current) return;
+      savingRef.current = true;
       try {
         const result = completeAnnotationEdit(batchData, image.id, boxes, source);
-        setBatchData(result.batch);
-        router.replace(result.route);
+        if (batchData.editingSavedBatch) {
+          setSaving(true);
+          const saved = await saveOpenedBatch(result.batch, saveBatchAnnotations);
+          setBatchData(saved);
+          router.replace({ pathname: '/screens/imaging/saved-batch', params: { batchId: saved.id! } });
+        } else {
+          setBatchData(result.batch);
+          router.replace(result.route);
+        }
       } catch (error) {
-        showAlert('Unable to keep annotations', error instanceof Error ? error.message : 'Please check your boxes and try again.');
+        showAlert('Unable to save annotations', error instanceof Error ? error.message : 'Please check your boxes and try again.');
+      } finally {
+        savingRef.current = false;
+        setSaving(false);
       }
-    }} />;
+    }} />
+    <Modal visible={saving} transparent animationType="fade" onRequestClose={() => {}}>
+      <View style={styles.savingOverlay}>
+        <ActivityIndicator size="large" color="#4caf50" />
+        <ThemedText style={styles.savingText}>Saving annotations…</ThemedText>
+      </View>
+    </Modal>
+  </View>;
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#101820' },
+  savingOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', alignItems: 'center', justifyContent: 'center', gap: 16 },
+  savingText: { color: '#fff', fontSize: 17 },
   instructions: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
   title: { color: '#fff', fontSize: 18, fontWeight: '700' },
   helpText: { color: '#D5DEE3', fontSize: 13, lineHeight: 18, marginTop: 3 },

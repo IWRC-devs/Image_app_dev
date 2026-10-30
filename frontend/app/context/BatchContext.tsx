@@ -20,6 +20,9 @@ export type BatchData = CollectorDetails & {
   lightingId?: number;
   images: ImageItem[];
   selectedOption?: "manual" | "capture";
+  /** Editing annotations on an existing local batch, not creating a new batch. */
+  editingSavedBatch?: boolean;
+  savedAt?: string;
 };
 
 type BatchContextType = {
