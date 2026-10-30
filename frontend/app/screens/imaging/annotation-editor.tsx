@@ -16,15 +16,15 @@ import { saveBatchAnnotations } from '@/utils/batchStore';
 import { saveOpenedBatch } from '@/utils/savedBatchEditing';
 import {
   AnnotationHistory, CanvasView, Corner, ImageFrame, Point, Size,
-  MAX_ZOOM, boxFrame, constrainView, containsPoint, cornerPoints, createHistory, drawBox, fitView,
-  hitBox, imageFrame, imagePoint, moveBox, panView, recordEdit, redoEdit, resizeBox, undoEdit, zoomView,
+  addTappedBox, boxFrame, constrainView, containsPoint, cornerPoints, createHistory, finishBox, fitView,
+  hitBox, imageFrame, moveBox, recordEdit, redoEdit, resizeBox, undoEdit, zoomView,
 } from '@/utils/annotationCanvas';
 
-type Mode = 'draw' | 'edit' | 'pan';
+type Mode = 'add' | 'edit';
 type Gesture =
-  | { kind: 'draw'; before: AnnotationHistory; start: Point; frame: ImageFrame; id: string }
+  | { kind: 'tap'; before: AnnotationHistory; start: Point; frame: ImageFrame; id: string; moved: boolean }
   | { kind: 'edit'; before: AnnotationHistory; start: Point; frame: ImageFrame; box: BoundingBoxAnnotation; corner?: Corner }
-  | { kind: 'pan'; start: Point; view: CanvasView }
+  | { kind: 'ignore' }
   | { kind: 'pinch'; midpoint: Point; distance: number; view: CanvasView };
 
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -32,29 +32,33 @@ const midpoint = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y +
 const webGestureStyle: (ViewStyle & { touchAction: string; userSelect: string }) | undefined = Platform.OS === 'web'
   ? { touchAction: 'none', userSelect: 'none' } : undefined;
 
-function ToolButton({ label, icon, onPress, disabled = false, active = false, compact = false }: {
+function ToolButton({ label, icon, onPress, disabled = false, active = false }: {
   label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void;
-  disabled?: boolean; active?: boolean; compact?: boolean;
+  disabled?: boolean; active?: boolean;
 }) {
   return (
     <TouchableOpacity accessibilityRole="button" accessibilityLabel={label}
       accessibilityState={{ disabled, selected: active }} disabled={disabled} onPress={onPress}
-      style={[styles.toolButton, compact && styles.compactButton, active && styles.activeButton, disabled && styles.disabledButton]}>
+      style={[styles.toolButton, active && styles.activeButton, disabled && styles.disabledButton]}>
       <Ionicons name={icon} size={19} color="#fff" />
-      {!compact && <ThemedText style={styles.buttonText}>{label}</ThemedText>}
+      <ThemedText style={styles.buttonText}>{label}</ThemedText>
     </TouchableOpacity>
   );
 }
 
-function AnnotationCanvas({ image, weedName, onDone }: {
-  image: ImageItem; weedName: string; onDone: (boxes: BoundingBoxAnnotation[], source: Size) => void | Promise<void>;
+function AnnotationCanvas({ image, weedName, onSave, onDone }: {
+  image: ImageItem; weedName: string;
+  onSave: (boxes: BoundingBoxAnnotation[], source: Size) => Promise<boolean>;
+  onDone: (boxes: BoundingBoxAnnotation[], source: Size) => Promise<boolean>;
 }) {
   const [source, setSource] = useState<Size>({ width: image.width || 1, height: image.height || 1 });
   const [sizeReady, setSizeReady] = useState(Boolean(image.width && image.height));
   const [viewport, setViewport] = useState<Size>({ width: 0, height: 0 });
-  const [history, setHistory] = useState(() => createHistory(image.annotations));
+  const [history, setHistory] = useState(() => finishBox(createHistory(image.annotations)));
+  const [savedSignature, setSavedSignature] = useState(() => JSON.stringify(image.annotations ?? []));
+  const [savingBox, setSavingBox] = useState(false);
   const [view, setView] = useState(fitView);
-  const [mode, setMode] = useState<Mode>(image.annotations?.length ? 'edit' : 'draw');
+  const [mode, setMode] = useState<Mode>('add');
   const historyRef = useRef(history);
   const viewRef = useRef(view);
   const gesture = useRef<Gesture | null>(null);
@@ -76,7 +80,7 @@ function AnnotationCanvas({ image, weedName, onDone }: {
 
   const cancelGesture = () => {
     const current = gesture.current;
-    if (current?.kind === 'draw' || current?.kind === 'edit') updateHistory(current.before);
+    if (current?.kind === 'edit') updateHistory(current.before);
     gesture.current = null;
   };
   const localTouches = (event: GestureResponderEvent): Point[] =>
@@ -86,13 +90,14 @@ function AnnotationCanvas({ image, weedName, onDone }: {
     x: event.nativeEvent.pageX - origin.current.x, y: event.nativeEvent.pageY - origin.current.y,
   });
   const startPinch = (points: Point[]) => {
+    if (!sizeReady || savingBox) return;
     cancelGesture();
     gesture.current = { kind: 'pinch', midpoint: midpoint(points[0], points[1]),
       distance: Math.max(1, distance(points[0], points[1])), view: viewRef.current };
   };
 
   const startGesture = (event: GestureResponderEvent) => {
-    if (!sizeReady) return;
+    if (!sizeReady || savingBox) return;
     const native = event.nativeEvent;
     origin.current = { x: native.pageX - native.locationX, y: native.pageY - native.locationY };
     const points = localTouches(event);
@@ -100,20 +105,22 @@ function AnnotationCanvas({ image, weedName, onDone }: {
     const point = eventPoint(event);
     const currentFrame = imageFrame(source, viewport, viewRef.current);
     if (!currentFrame.width || !currentFrame.height) return;
-    if (mode === 'pan') { gesture.current = { kind: 'pan', start: point, view: viewRef.current }; return; }
     const before = historyRef.current;
-    if (mode === 'draw') {
+    if (mode === 'add' && !before.present.selectedId) {
       if (containsPoint(point, currentFrame)) gesture.current = {
-        kind: 'draw', before, start: point, frame: currentFrame, id: uuid.v4() as string,
+        kind: 'tap', before, start: point, frame: currentFrame, id: uuid.v4() as string, moved: false,
       };
       return;
     }
-    const hit = hitBox(before.present, point, currentFrame);
+    const hit = hitBox(mode === 'add' ? { ...before.present,
+      boxes: before.present.boxes.filter(box => box.id === before.present.selectedId) } : before.present, point, currentFrame);
+    if (mode === 'add' && !hit) return;
     updateHistory({ ...before, present: { ...before.present, selectedId: hit?.box.id ?? null } });
     if (hit) gesture.current = { kind: 'edit', before, start: point, frame: currentFrame, ...hit };
   };
 
   const moveGesture = (event: GestureResponderEvent) => {
+    if (!sizeReady || savingBox) return;
     const points = localTouches(event);
     if (points.length >= 2) {
       if (gesture.current?.kind !== 'pinch') startPinch(points);
@@ -126,18 +133,9 @@ function AnnotationCanvas({ image, weedName, onDone }: {
     const current = gesture.current;
     if (!current) return;
     const point = eventPoint(event);
-    if (current.kind === 'pinch') return;
-    if (current.kind === 'pan') {
-      updateView(panView(source, viewport, current.view,
-        { x: point.x - current.start.x, y: point.y - current.start.y }));
-      return;
-    }
-    if (current.kind === 'draw') {
-      const box = distance(current.start, point) >= 3
-        ? drawBox(current.id, weedName, imagePoint(current.start, current.frame), imagePoint(point, current.frame), source) : null;
-      updateHistory({ ...current.before, present: { boxes: box
-        ? [...current.before.present.boxes, box] : current.before.present.boxes,
-        selectedId: box?.id ?? current.before.present.selectedId } });
+    if (current.kind === 'pinch' || current.kind === 'ignore') return;
+    if (current.kind === 'tap') {
+      if (distance(current.start, point) > 8) current.moved = true;
       return;
     }
     const delta = { x: (point.x - current.start.x) / current.frame.width,
@@ -149,7 +147,9 @@ function AnnotationCanvas({ image, weedName, onDone }: {
 
   const finishGesture = () => {
     const current = gesture.current;
-    if (current?.kind === 'draw' || current?.kind === 'edit') {
+    if (current?.kind === 'tap' && !current.moved) {
+      updateHistory(addTappedBox(current.before, current.id, weedName, current.start, current.frame, source, viewport));
+    } else if (current?.kind === 'edit') {
       updateHistory(recordEdit(current.before, historyRef.current.present));
     }
     gesture.current = null;
@@ -168,9 +168,9 @@ function AnnotationCanvas({ image, weedName, onDone }: {
     onPanResponderMove: event => callbacks.current.moveGesture(event),
     onPanResponderEnd: event => {
       const points = callbacks.current.localTouches(event);
-      // After a pinch, the remaining finger pans; it must never draw or edit a box.
+      // Navigation requires two fingers; the remaining finger cannot place or edit a box.
       if (gesture.current?.kind === 'pinch' && points.length === 1) {
-        gesture.current = { kind: 'pan', start: points[0], view: viewRef.current };
+        gesture.current = { kind: 'ignore' };
       }
     },
     onPanResponderRelease: () => callbacks.current.finishGesture(),
@@ -181,6 +181,19 @@ function AnnotationCanvas({ image, weedName, onDone }: {
   const boxes = history.present.boxes;
   const selectedIndex = boxes.findIndex(box => box.id === history.present.selectedId);
   const selected = boxes[selectedIndex];
+  const dirty = JSON.stringify(boxes) !== savedSignature;
+  const saveBox = async () => {
+    if (savingBox) return;
+    const snapshot = historyRef.current.present.boxes;
+    setSavingBox(true);
+    try {
+      if (await onSave(snapshot, source)) {
+        setSavedSignature(JSON.stringify(snapshot));
+        updateHistory(finishBox(historyRef.current));
+        setMode('add');
+      }
+    } finally { setSavingBox(false); }
+  };
   const deleteSelected = () => {
     if (!selected) return;
     const remaining = boxes.filter(box => box.id !== selected.id);
@@ -198,24 +211,23 @@ function AnnotationCanvas({ image, weedName, onDone }: {
       { x: rectangle.left + rectangle.width / 2, y: rectangle.top + rectangle.height / 2 },
       { x: viewport.width / 2, y: viewport.height / 2 }));
   };
-  const instructions = mode === 'draw' ? 'Drag from one corner of the plant to the opposite corner to draw a box.'
-    : mode === 'edit' ? 'Tap a box to select it. Drag inside to move it, or drag a corner to resize.'
-      : 'Drag to move the image. Switch to Draw box or Edit boxes to annotate.';
+  const instructions = selected ? 'Drag the box or its corners to adjust it. Tap Save box before adding another.'
+    : mode === 'add' ? 'Tap the image to place a box with editable corners.' : 'Tap an existing box to edit it.';
 
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.instructions}>
         <ThemedText style={styles.title} numberOfLines={1}>{weedName}</ThemedText>
-        <ThemedText style={styles.helpText}>{instructions} Pinch or use +/− to zoom.</ThemedText>
-        <ThemedText style={styles.imageInfo}>
+        <ThemedText style={styles.helpText}>Use two fingers to zoom in/out and move the image.</ThemedText>
+        <ThemedText style={[styles.helpText, styles.boxInstructions]} numberOfLines={3}>{instructions}</ThemedText>
+        <ThemedText style={styles.imageInfo} numberOfLines={1}>
           {source.width} × {source.height} px · {boxes.length} {boxes.length === 1 ? 'box' : 'boxes'}
           {selected ? ` · Selected: instance ${selectedIndex + 1}` : ''}
         </ThemedText>
       </View>
       <View style={styles.modeBar}>
-        <ToolButton label="Draw box" icon="create-outline" active={mode === 'draw'} onPress={() => setMode('draw')} />
+        <ToolButton label="Tap to add" icon="add-circle-outline" active={mode === 'add'} onPress={() => setMode('add')} />
         <ToolButton label="Edit boxes" icon="scan-outline" active={mode === 'edit'} onPress={() => setMode('edit')} />
-        <ToolButton label="Move image" icon="hand-left-outline" active={mode === 'pan'} onPress={() => setMode('pan')} />
       </View>
       <View style={styles.viewport} onLayout={event => {
         cancelGesture();
@@ -237,22 +249,14 @@ function AnnotationCanvas({ image, weedName, onDone }: {
                 </View>
               );
             })}
-            {selected && mode === 'edit' && cornerPoints(boxFrame(selected, frame)).map(({ corner, point }) => (
+            {selected && cornerPoints(boxFrame(selected, frame)).map(({ corner, point }) => (
               <View key={corner} style={[styles.handle, { left: point.x - 13, top: point.y - 13 }]} />
             ))}
           </View>
         )}
         <View style={[StyleSheet.absoluteFill, webGestureStyle]}
-          accessibilityLabel="Annotation canvas. Use Draw box to draw, Edit boxes to move or resize, and Move image to pan."
+          accessibilityLabel="Tap to add a box, adjust its corners, then Save box. Use two fingers to zoom and move the image."
           {...responder.panHandlers} />
-      </View>
-      <View style={styles.zoomBar}>
-        <ToolButton label="Zoom out" compact icon="remove" disabled={view.zoom <= 1}
-          onPress={() => updateView(zoomView(source, viewport, viewRef.current, viewRef.current.zoom / 1.5))} />
-        <ThemedText style={styles.zoomText}>{Math.round(view.zoom * 100)}%</ThemedText>
-        <ToolButton label="Zoom in" compact icon="add" disabled={view.zoom >= MAX_ZOOM}
-          onPress={() => updateView(zoomView(source, viewport, viewRef.current, viewRef.current.zoom * 1.5))} />
-        <ToolButton label="Fit" icon="expand-outline" onPress={() => updateView(fitView())} />
       </View>
       <View style={styles.toolbar}>
         <ToolButton label="Undo" icon="arrow-undo" disabled={!history.past.length}
@@ -261,7 +265,11 @@ function AnnotationCanvas({ image, weedName, onDone }: {
           onPress={() => updateHistory(redoEdit(historyRef.current))} />
         <ToolButton label="Next box" icon="layers-outline" disabled={!boxes.length} onPress={nextBox} />
         <ToolButton label="Delete box" icon="trash-outline" disabled={!selected} onPress={deleteSelected} />
-        <ToolButton label="Done" icon="checkmark" active disabled={!sizeReady}
+      </View>
+      <View style={styles.saveBar}>
+        <ToolButton label={savingBox ? 'Saving…' : selected ? 'Save box' : 'Save changes'} icon="save-outline" active
+          disabled={!sizeReady || savingBox || (!selected && !dirty)} onPress={saveBox} />
+        <ToolButton label="Done" icon="checkmark" disabled={!sizeReady || savingBox}
           onPress={() => onDone(historyRef.current.present.boxes, source)} />
       </View>
     </SafeAreaView>
@@ -282,30 +290,34 @@ export default function AnnotationEditorScreen() {
   if (!batchData || !image) return (
     <SafeAreaView style={styles.screen}><ThemedText style={styles.errorText}>This image is no longer available.</ThemedText></SafeAreaView>
   );
-  return <View style={styles.screen}>
-    <AnnotationCanvas key={`${batchData.id ?? batchData.name}:${image.id}:${editorSession}`}
-      image={image} weedName={batchData.botanicalName || 'Weed of interest'}
-    onDone={async (boxes, source) => {
-      if (savingRef.current) return;
+  const persistAnnotations = async (boxes: BoundingBoxAnnotation[], source: Size, close: boolean): Promise<boolean> => {
+      if (savingRef.current) return false;
       savingRef.current = true;
+      setSaving(true);
       try {
         const result = completeAnnotationEdit(batchData, image.id, boxes, source);
         if (batchData.editingSavedBatch) {
-          setSaving(true);
           const saved = await saveOpenedBatch(result.batch, saveBatchAnnotations);
           setBatchData(saved);
-          router.replace({ pathname: '/screens/imaging/saved-batch', params: { batchId: saved.id! } });
+          if (close) router.replace({ pathname: '/screens/imaging/saved-batch', params: { batchId: saved.id! } });
         } else {
           setBatchData(result.batch);
-          router.replace(result.route);
+          if (close) router.replace(result.route);
         }
+        return true;
       } catch (error) {
         showAlert('Unable to save annotations', error instanceof Error ? error.message : 'Please check your boxes and try again.');
+        return false;
       } finally {
         savingRef.current = false;
         setSaving(false);
       }
-    }} />
+  };
+  return <View style={styles.screen}>
+    <AnnotationCanvas key={`${batchData.id ?? batchData.name}:${image.id}:${editorSession}`}
+      image={image} weedName={batchData.botanicalName || 'Weed of interest'}
+      onSave={(boxes, source) => persistAnnotations(boxes, source, false)}
+      onDone={(boxes, source) => persistAnnotations(boxes, source, true)} />
     <Modal visible={saving} transparent animationType="fade" onRequestClose={() => {}}>
       <View style={styles.savingOverlay}>
         <ActivityIndicator size="large" color="#4caf50" />
@@ -322,6 +334,7 @@ const styles = StyleSheet.create({
   instructions: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
   title: { color: '#fff', fontSize: 18, fontWeight: '700' },
   helpText: { color: '#D5DEE3', fontSize: 13, lineHeight: 18, marginTop: 3 },
+  boxInstructions: { height: 54 },
   imageInfo: { color: '#B5C4CD', fontSize: 12, marginTop: 3 },
   modeBar: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 10, paddingBottom: 8 },
   viewport: { flex: 1, minHeight: 100, overflow: 'hidden', backgroundColor: '#000' },
@@ -330,14 +343,12 @@ const styles = StyleSheet.create({
     color: '#fff', fontSize: 12, lineHeight: 20, fontWeight: '700' },
   handle: { position: 'absolute', width: 26, height: 26, borderRadius: 13,
     borderWidth: 2, borderColor: '#101820', backgroundColor: '#ff3b30' },
-  zoomBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 6 },
-  zoomText: { color: '#fff', minWidth: 48, textAlign: 'center', fontSize: 13 },
+  saveBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 8, paddingBottom: 8 },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 8,
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#40515A' },
   toolButton: { flexGrow: 1, minHeight: 44, minWidth: 44, paddingHorizontal: 9, paddingVertical: 7,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
     borderRadius: 7, backgroundColor: '#40515A' },
-  compactButton: { flexGrow: 0 },
   activeButton: { backgroundColor: '#236B3A', borderWidth: 1, borderColor: '#66DC8E' },
   disabledButton: { opacity: 0.35 },
   buttonText: { color: '#fff', fontWeight: '600', fontSize: 13 },

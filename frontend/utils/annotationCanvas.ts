@@ -79,6 +79,37 @@ export function drawBox(id: string, className: string, start: Point, end: Point,
     width: right - left, height: bottom - top };
 }
 
+/** Place a usable screen-sized box, keeping its corners in the visible part of the photo. */
+export function placeBoxAtTap(id: string, className: string, point: Point, frame: ImageFrame,
+  source: Size, viewport: Size): BoundingBoxAnnotation | null {
+  if (!frame.width || !frame.height || !containsPoint(point, frame)) return null;
+  const left = Math.max(0, frame.left);
+  const top = Math.max(0, frame.top);
+  const right = Math.min(viewport.width, frame.left + frame.width);
+  const bottom = Math.min(viewport.height, frame.top + frame.height);
+  if (right <= left || bottom <= top) return null;
+  const width = Math.min(96, (right - left) * 0.4);
+  const height = Math.min(96, (bottom - top) * 0.4);
+  const center = { x: clamp(point.x, left + width / 2, right - width / 2),
+    y: clamp(point.y, top + height / 2, bottom - height / 2) };
+  return drawBox(id, className,
+    imagePoint({ x: center.x - width / 2, y: center.y - height / 2 }, frame),
+    imagePoint({ x: center.x + width / 2, y: center.y + height / 2 }, frame), source);
+}
+
+export function addTappedBox(history: AnnotationHistory, id: string, className: string, point: Point,
+  frame: ImageFrame, source: Size, viewport: Size): AnnotationHistory {
+  // Finish the current box explicitly before placing another, including overlapping boxes.
+  if (history.present.selectedId) return history;
+  const box = placeBoxAtTap(id, className, point, frame, source, viewport);
+  return box ? recordEdit(history, { boxes: [...history.present.boxes, box], selectedId: box.id }) : history;
+}
+
+/** Call only after persistence succeeds. Selection changes are not an undoable geometry edit. */
+export function finishBox(history: AnnotationHistory): AnnotationHistory {
+  return { ...history, present: { ...history.present, selectedId: null } };
+}
+
 export function moveBox(box: BoundingBoxAnnotation, delta: Point): BoundingBoxAnnotation {
   return { ...box, xCenter: clamp(box.xCenter + delta.x, box.width / 2, 1 - box.width / 2),
     yCenter: clamp(box.yCenter + delta.y, box.height / 2, 1 - box.height / 2) };

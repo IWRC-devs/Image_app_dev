@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { strFromU8, unzipSync } from 'fflate';
 import {
-  boxFrame, constrainView, createHistory, drawBox, fitView, hitBox, imageFrame, imagePoint,
+  addTappedBox, boxFrame, constrainView, createHistory, drawBox, finishBox, fitView, hitBox, imageFrame, imagePoint, placeBoxAtTap,
   moveBox, panView, recordEdit, redoEdit, resizeBox, undoEdit, zoomView,
 } from '../utils/annotationCanvas.ts';
 import { createBatchArchive } from '../utils/exportBatch.web.ts';
@@ -22,6 +22,64 @@ test('an untouched photo has no accidental default box or undo action', () => {
   assert.equal(undoEdit(history), history);
   assert.equal(redoEdit(history), history);
   assert.equal(drawBox('tap', 'Species', { x: 0.5, y: 0.5 }, { x: 0.5, y: 0.5 }, source), null);
+});
+
+test('a tap places a visible box with four reachable corners, including zoomed image and viewport edges', () => {
+  for (const zoom of [1, 3, 8]) {
+    const frame = imageFrame(source, viewport, { zoom, offset: { x: -30, y: 60 } });
+    const left = Math.max(0, frame.left);
+    const top = Math.max(0, frame.top);
+    const right = Math.min(viewport.width, frame.left + frame.width);
+    const bottom = Math.min(viewport.height, frame.top + frame.height);
+    for (const point of [{ x: left + 1, y: top + 1 }, { x: right - 1, y: bottom - 1 },
+      { x: (left + right) / 2, y: (top + bottom) / 2 }]) {
+      const placed = placeBoxAtTap('tap', 'Species', point, frame, source, viewport);
+      assert.ok(normalizeAnnotation(placed, 0));
+      const rectangle = boxFrame(placed, frame);
+      assert.ok(rectangle.left >= left - 1e-8 && rectangle.top >= top - 1e-8);
+      assert.ok(rectangle.left + rectangle.width <= right + 1e-8);
+      assert.ok(rectangle.top + rectangle.height <= bottom + 1e-8);
+      assert.ok(rectangle.width >= 40 && rectangle.height >= 40);
+    }
+  }
+  assert.equal(placeBoxAtTap('outside', 'Species', { x: -1, y: -1 }, imageFrame(source, viewport, fitView()), source, viewport), null);
+});
+
+test('tap, adjust, Save box, then tap again creates separate instances and preserves undo/redo', () => {
+  const frame = imageFrame(source, viewport, fitView());
+  const point = { x: 180, y: 250 };
+  const empty = finishBox(createHistory());
+  const first = addTappedBox(empty, 'first', 'Species', point, frame, source, viewport);
+  assert.equal(first.present.selectedId, 'first');
+  assert.equal(first.present.boxes.length, 1);
+  assert.equal(addTappedBox(first, 'too-soon', 'Species', point, frame, source, viewport), first);
+  const adjusted = resizeBox(first.present.boxes[0], 'bottomRight', { x: -0.1, y: -0.1 }, source);
+  const edited = recordEdit(first, { boxes: [adjusted], selectedId: 'first' });
+  const saved = finishBox(edited);
+  assert.equal(saved.present.selectedId, null);
+  assert.equal(saved.past.length, edited.past.length);
+  // The next instance may overlap the previous one, without changing the saved instance.
+  const second = addTappedBox(saved, 'second', 'Species', point, frame, source, viewport);
+  assert.equal(second.present.boxes.length, 2);
+  assert.equal(second.present.selectedId, 'second');
+  assert.deepEqual(second.present.boxes[0], adjusted);
+  assert.deepEqual(undoEdit(second).present.boxes, [adjusted]);
+  assert.deepEqual(redoEdit(undoEdit(second)).present, second.present);
+});
+
+test('two-finger movement at constant spacing pans without changing annotations', () => {
+  const history = finishBox(createHistory([box]));
+  const before = structuredClone(history);
+  const view = { zoom: 3, offset: { x: 0, y: 0 } };
+  const anchor = { x: 180, y: 250 };
+  const destination = { x: 220, y: 290 };
+  const next = zoomView(source, viewport, view, view.zoom, anchor, destination);
+  const oldPoint = imagePoint(anchor, imageFrame(source, viewport, view));
+  const newPoint = imagePoint(destination, imageFrame(source, viewport, next));
+  near(newPoint.x, oldPoint.x);
+  near(newPoint.y, oldPoint.y);
+  assert.equal(next.zoom, view.zoom);
+  assert.deepEqual(history, before);
 });
 
 test('image coordinates survive zoom, pan and letterboxing for landscape, portrait and square photos', () => {

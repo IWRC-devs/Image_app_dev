@@ -6,6 +6,7 @@ import { openSavedBatch, saveOpenedBatch } from '../utils/savedBatchEditing.ts';
 import { completeAnnotationEdit } from '../utils/annotationEditing.ts';
 import { createBatchArchive } from '../utils/exportBatch.web.ts';
 import { strFromU8, unzipSync } from 'fflate';
+import { addTappedBox, finishBox, createHistory, imageFrame, fitView } from '../utils/annotationCanvas.ts';
 
 const fixture = (id, savedAt = '2026-10-29T12:00:00Z') => ({
   id, name: id, savedAt, synced: false,
@@ -139,4 +140,43 @@ test('stale saved-batch edits fail without replacing photos or recreating a dele
   await deleteBatch(original.id);
   await assert.rejects(saveOpenedBatch(opened, saveBatchAnnotations));
   assert.deepEqual(await getSavedBatches(), []);
+});
+
+test('saving each tapped box keeps one batch and allows another box to be saved immediately', async () => {
+  const original = fixture('save-each-box');
+  original.images[0].annotations = [];
+  await saveBatch(original);
+  const [loaded] = await getSavedBatches();
+  let opened = openSavedBatch(loaded);
+  let history = finishBox(createHistory());
+  const source = { width: 200, height: 100 };
+  const viewport = { width: 400, height: 300 };
+  const frame = imageFrame(source, viewport, fitView());
+  for (let instance = 1; instance <= 2; instance++) {
+    history = addTappedBox(history, `instance-${instance}`, opened.botanicalName,
+      { x: 120 + instance * 50, y: 150 }, frame, source, viewport);
+    opened = await saveOpenedBatch(completeAnnotationEdit(opened, 'photo-1', history.present.boxes, source).batch,
+      saveBatchAnnotations);
+    history = finishBox(history);
+    // Re-reading the database confirms each Save box was durable before the next tap.
+    const persisted = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('iwrc-imaging', 1);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const db = request.result;
+        const transaction = db.transaction('batches', 'readonly');
+        const read = transaction.objectStore('batches').get(original.id);
+        transaction.oncomplete = () => { resolve(read.result); db.close(); };
+        transaction.onabort = () => { reject(transaction.error); db.close(); };
+      };
+    });
+    assert.equal(persisted.images[0].annotations.length, instance);
+    assert.equal(await persisted.images[0].blob.text(), 'image-bytes');
+  }
+  const batches = await getSavedBatches();
+  assert.equal(batches.length, 1);
+  assert.equal(batches[0].id, original.id);
+  const archive = unzipSync(await createBatchArchive(batches[0]));
+  assert.equal(strFromU8(archive['image_001.txt']).split('\n').length, 2);
+  await deleteBatch(original.id);
 });
