@@ -231,7 +231,7 @@ function AnnotationCanvas({ image, weedName, onDone }: {
               const rectangle = boxFrame(box, frame);
               const isSelected = box.id === history.present.selectedId;
               return (
-                <View key={box.id} style={[styles.box, rectangle, { borderColor: isSelected ? '#00E676' : '#FFEB3B' }]}>
+                <View key={box.id} style={[styles.box, rectangle, { borderWidth: isSelected ? 3 : 2 }]}>
                   <ThemedText numberOfLines={1} style={[styles.boxLabel, { maxWidth: frame.width,
                     top: rectangle.top < 24 ? 2 : -23 }]}>{weedName} · {index + 1}</ThemedText>
                 </View>
@@ -325,11 +325,11 @@ const styles = StyleSheet.create({
   imageInfo: { color: '#B5C4CD', fontSize: 12, marginTop: 3 },
   modeBar: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 10, paddingBottom: 8 },
   viewport: { flex: 1, minHeight: 100, overflow: 'hidden', backgroundColor: '#000' },
-  box: { position: 'absolute', borderWidth: 2, backgroundColor: 'rgba(0,230,118,0.06)' },
-  boxLabel: { position: 'absolute', left: -2, paddingHorizontal: 4, backgroundColor: '#00E676',
-    color: '#101820', fontSize: 12, lineHeight: 20, fontWeight: '700' },
+  box: { position: 'absolute', borderWidth: 2, borderColor: '#ff3b30', backgroundColor: 'rgba(255,59,48,0.06)' },
+  boxLabel: { position: 'absolute', left: -2, paddingHorizontal: 4, backgroundColor: '#b71c1c',
+    color: '#fff', fontSize: 12, lineHeight: 20, fontWeight: '700' },
   handle: { position: 'absolute', width: 26, height: 26, borderRadius: 13,
-    borderWidth: 2, borderColor: '#101820', backgroundColor: '#00E676' },
+    borderWidth: 2, borderColor: '#101820', backgroundColor: '#ff3b30' },
   zoomBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 6 },
   zoomText: { color: '#fff', minWidth: 48, textAlign: 'center', fontSize: 13 },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 8,
