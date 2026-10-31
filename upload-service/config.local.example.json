@@ -1,0 +1,10 @@
+{
+  "endpoint": "",
+  "bucket": "",
+  "region": "us-east-1",
+  "prefix": "iwrc-pilot/navjot",
+  "accessKeyId": "",
+  "secretAccessKey": "",
+  "privateBucketConfirmed": false,
+  "maxUploadBytes": 134217728
+}

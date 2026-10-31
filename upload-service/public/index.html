@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IWRC private upload pilot</title><link rel="stylesheet" href="/upload.css"><script src="/upload.js" defer></script></head>
+<body><main><p class="eyebrow">IWRC IMAGING · LOCAL PILOT</p><h1>Upload a saved batch</h1>
+<p>This uploader runs only on this computer. Uploads go to your configured private research storage after you choose a batch.</p>
+<p id="connection" role="status">Checking local configuration…</p>
+<section><h2>Use a batch you already collected</h2>
+<ol><li>Open <a href="https://iwrc-devs.github.io/Image_app_dev/" target="_blank" rel="noreferrer">the current app</a> in the browser where your batch was saved.</li>
+<li>Go to Saved Batches and download its ZIP.</li><li>Select that ZIP below. It includes the images, batch.txt, classes.txt, and image annotation TXT files.</li></ol>
+<label for="batch">Batch ZIP</label><input id="batch" type="file" accept=".zip,application/zip">
+<button id="upload" disabled>Upload and verify</button><p id="progress" role="status" aria-live="polite"></p>
+<button id="receipt" hidden>Download verification receipt</button></section>
+<section><h2>Or collect a small test batch here</h2><p>The local app has separate browser storage. Batches on the public app link stay where they are.</p>
+<a class="link-button" href="/Image_app_dev/">Open local test app</a></section>
+<p class="note">Your local ZIP and app photos are retained. “Verified” means the stored ZIP was downloaded back and its full SHA-256 checksum matched. The pilot limit is shown above; the storage owner's 1 TB allocation is managed separately.</p>
+</main></body></html>

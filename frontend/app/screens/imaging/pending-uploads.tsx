@@ -4,6 +4,7 @@ import React, { useCallback, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { showAlert } from '@/utils/alerts';
 import { BatchDownloadButton } from '@/components/BatchDownloadButton';
+import { BatchUploadButton } from '@/components/BatchUploadButton';
 
 import { PageTransition } from '@/components/PageTransition';
 import { ThemedText } from '@/components/ThemedText';
@@ -72,7 +73,7 @@ export default function SavedBatchesScreen() {
         <ThemedText style={styles.heading}>Saved Batches</ThemedText>
         <ThemedText style={styles.privacyNote}>
           {Platform.OS === 'web'
-            ? "Saved in this browser on this device. Clearing this site's browser data removes saved batches. Nothing is uploaded."
+            ? "Saved in this browser on this device. Clearing this site's browser data removes local batches. Exported or uploaded copies are kept separately."
             : 'Saved to the "IWRC imaging" folder you selected on this device. Nothing is uploaded to a server or cloud account.'}
         </ThemedText>
 
@@ -114,6 +115,7 @@ export default function SavedBatchesScreen() {
                 <Ionicons name="folder-open-outline" size={22} color="#fff" />
                 <ThemedText style={styles.openButtonText}>Open & annotate</ThemedText>
               </TouchableOpacity>
+              <BatchUploadButton batch={batch} />
             </View>
           ))
         )}

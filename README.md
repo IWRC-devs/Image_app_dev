@@ -8,9 +8,9 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 - **Browser/PWA preview:** the same Expo app also exports to the web, with offline caching and browser-local batch storage. Android APK and AAB build options remain available.
 - **Collector details:** collector/team name, valid email address, organization, country and state are required. They are remembered on the current browser/device after Continue, prefilled for later batches, and editable on the same screen. Each batch retains its own details in `batch.txt` and PWA downloads.
 - **Handoff integration preview:** includes environment/planting-system fields, image EXIF, and a per-image bounding-box editor. See [integration details and the saved metadata example](docs/desktop-handoff-integration.md).
-- **Fully local, no backend.** The app does not upload batches, images, or metadata to any server or cloud account. There is no login/account system.
+- **Local collection plus a personal upload pilot.** The public PWA and native app retain local collection. A loopback-only S3 upload service supports a personal Arbutus test on this computer, with server-side credentials, explicit uploads and verified receipts. It is not connected to real storage until the owner's details and keys are configured. There is no public login/account system. See [local pilot setup](upload-service/README.md).
 - **Capture flow**: Location → Parameters (botanical name, site, background, growth stage, soil color, lighting) → Image capture or manual selection → Review & Save, with a slide-in page transition between steps and a success screen (with a **Done** button that returns to the home screen) after saving.
-- **Saved Batches screen**: lists previously saved batches on-device and allows deleting them.
+- **Saved Batches screen**: opens existing batches for annotation, downloads web batch ZIPs, and allows deleting local batches. The local upload pilot also displays an Upload batch action; this action is hidden on the public GitHub Pages app and native builds.
 - **Latest internal build**: [`releases/android/IWRC-Imaging-v1.0.0.apk`](releases/android/IWRC-Imaging-v1.0.0.apk) — a debug-signed APK for sideloading onto test devices (not published to the Play Store). Android will warn about installing from an unknown source; that's expected.
 
 ## Where data is saved

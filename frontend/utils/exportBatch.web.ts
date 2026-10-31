@@ -20,5 +20,7 @@ export async function createBatchArchive(batch: StoredBatch, lightingOptions: { 
   files['batch.txt'] = strToU8(JSON.stringify(toInternalMetadata({ ...batch, images }, lightingOptions), null, 2));
   files['classes.txt'] = strToU8(classes.join('\n'));
   // Photos are already compressed; storing them avoids costly recompression.
-  return zipSync(files, { level: 0 });
+  // Stable entry timestamps make retries of an unchanged batch byte-identical.
+  // Actual capture and save times remain in EXIF and batch.txt.
+  return zipSync(files, { level: 0, mtime: new Date(1980, 0, 1) });
 }
