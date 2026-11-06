@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, GestureResponderEvent, Image, Modal, PanResponder, Platform, SafeAreaView, StyleSheet,
+  ActivityIndicator, GestureResponderEvent, Image, Modal, PanResponder, Platform, SafeAreaView, ScrollView, StyleSheet,
   TouchableOpacity, View, ViewStyle,
 } from 'react-native';
 import uuid from 'react-native-uuid';
@@ -17,7 +17,7 @@ import { saveOpenedBatch } from '@/utils/savedBatchEditing';
 import {
   AnnotationHistory, CanvasView, Corner, ImageFrame, Point, Size,
   addTappedBox, boxFrame, constrainView, containsPoint, cornerPoints, createHistory, finishBox, fitView,
-  hitBox, imageFrame, moveBox, recordEdit, redoEdit, resizeBox, undoEdit, zoomView,
+  hitBox, imageFrame, moveBox, recordEdit, resizeBox, zoomView,
 } from '@/utils/annotationCanvas';
 
 type Mode = 'add' | 'edit';
@@ -57,6 +57,7 @@ function AnnotationCanvas({ image, weedName, onSave, onDone }: {
   const [history, setHistory] = useState(() => finishBox(createHistory(image.annotations)));
   const [savedSignature, setSavedSignature] = useState(() => JSON.stringify(image.annotations ?? []));
   const [savingBox, setSavingBox] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
   const [view, setView] = useState(fitView);
   const [mode, setMode] = useState<Mode>('add');
   const historyRef = useRef(history);
@@ -200,34 +201,31 @@ function AnnotationCanvas({ image, weedName, onSave, onDone }: {
     updateHistory(recordEdit(historyRef.current, { boxes: remaining,
       selectedId: remaining[Math.min(selectedIndex, remaining.length - 1)]?.id ?? null }));
   };
-  const nextBox = () => {
-    if (!boxes.length) return;
-    const next = boxes[(selectedIndex + 1) % boxes.length];
-    setMode('edit');
-    updateHistory({ ...historyRef.current, present: { ...historyRef.current.present,
-      selectedId: next.id } });
-    const rectangle = boxFrame(next, imageFrame(source, viewport, viewRef.current));
-    updateView(zoomView(source, viewport, viewRef.current, viewRef.current.zoom,
-      { x: rectangle.left + rectangle.width / 2, y: rectangle.top + rectangle.height / 2 },
-      { x: viewport.width / 2, y: viewport.height / 2 }));
-  };
-  const instructions = selected ? 'Drag the box or its corners to adjust it. Tap Save box before adding another.'
-    : mode === 'add' ? 'Tap the image to place a box with editable corners.' : 'Tap an existing box to edit it.';
-
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.instructions}>
-        <ThemedText style={styles.title} numberOfLines={1}>{weedName}</ThemedText>
-        <ThemedText style={styles.helpText}>Use two fingers to zoom in/out and move the image.</ThemedText>
-        <ThemedText style={[styles.helpText, styles.boxInstructions]} numberOfLines={3}>{instructions}</ThemedText>
-        <ThemedText style={styles.imageInfo} numberOfLines={1}>
-          {source.width} × {source.height} px · {boxes.length} {boxes.length === 1 ? 'box' : 'boxes'}
+        <View style={styles.headingRow}>
+          <ThemedText style={styles.title} numberOfLines={1}>{weedName}</ThemedText>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="Annotation help"
+            onPress={() => setHelpVisible(true)} style={styles.helpButton}>
+            <Ionicons name="help-circle-outline" size={28} color="#D5DEE3" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.promptRow}>
+          <ThemedText style={styles.helpText}>
+            {mode === 'add' ? 'Click on the photo to add a box.' : 'Click a box to edit it.'}
+          </ThemedText>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel={mode === 'add' ? 'Edit boxes' : 'Add boxes'}
+            disabled={savingBox} onPress={() => setMode(mode === 'add' ? 'edit' : 'add')}
+            style={styles.modeButton}>
+            <Ionicons name={mode === 'add' ? 'create-outline' : 'add-outline'} size={18} color="#fff" />
+            <ThemedText style={styles.modeText}>{mode === 'add' ? 'Edit boxes' : 'Add boxes'}</ThemedText>
+          </TouchableOpacity>
+        </View>
+        <ThemedText style={styles.imageInfo} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
+          {boxes.length} {boxes.length === 1 ? 'box' : 'boxes'}
           {selected ? ` · Selected: instance ${selectedIndex + 1}` : ''}
         </ThemedText>
-      </View>
-      <View style={styles.modeBar}>
-        <ToolButton label="Tap to add" icon="add-circle-outline" active={mode === 'add'} onPress={() => setMode('add')} />
-        <ToolButton label="Edit boxes" icon="scan-outline" active={mode === 'edit'} onPress={() => setMode('edit')} />
       </View>
       <View style={styles.viewport} onLayout={event => {
         cancelGesture();
@@ -259,19 +257,33 @@ function AnnotationCanvas({ image, weedName, onSave, onDone }: {
           {...responder.panHandlers} />
       </View>
       <View style={styles.toolbar}>
-        <ToolButton label="Undo" icon="arrow-undo" disabled={!history.past.length}
-          onPress={() => updateHistory(undoEdit(historyRef.current))} />
-        <ToolButton label="Redo" icon="arrow-redo" disabled={!history.future.length}
-          onPress={() => updateHistory(redoEdit(historyRef.current))} />
-        <ToolButton label="Next box" icon="layers-outline" disabled={!boxes.length} onPress={nextBox} />
-        <ToolButton label="Delete box" icon="trash-outline" disabled={!selected} onPress={deleteSelected} />
+        <ToolButton label={savingBox ? 'Saving…' : 'Save box'} icon="save-outline" active
+          disabled={!sizeReady || savingBox || (!selected && !dirty)} onPress={saveBox} />
+        <ToolButton label="Delete box" icon="trash-outline" disabled={!selected || savingBox} onPress={deleteSelected} />
       </View>
       <View style={styles.saveBar}>
-        <ToolButton label={savingBox ? 'Saving…' : selected ? 'Save box' : 'Save changes'} icon="save-outline" active
-          disabled={!sizeReady || savingBox || (!selected && !dirty)} onPress={saveBox} />
-        <ToolButton label="Done" icon="checkmark" disabled={!sizeReady || savingBox}
+        <ToolButton label="Done" icon="checkmark" active disabled={!sizeReady || savingBox}
           onPress={() => onDone(historyRef.current.present.boxes, source)} />
       </View>
+      <Modal visible={helpVisible} transparent animationType="fade" onRequestClose={() => setHelpVisible(false)}>
+        <View style={styles.helpOverlay}>
+          <View style={styles.helpCard} accessibilityViewIsModal>
+            <ThemedText style={styles.helpTitle} accessibilityRole="header">Annotation help</ThemedText>
+            <ScrollView style={styles.helpContent}>
+              <ThemedText style={styles.helpItem}>• Click on the photo to add a box with editable corners.</ThemedText>
+              <ThemedText style={styles.helpItem}>• Drag a corner to resize the box. Drag inside it to move it.</ThemedText>
+              <ThemedText style={styles.helpItem}>• Use two fingers to zoom in or out and move the image.</ThemedText>
+              <ThemedText style={styles.helpItem}>• Choose Save box before adding another box.</ThemedText>
+              <ThemedText style={styles.helpItem}>• Choose Edit boxes, then click a box to edit or delete it.</ThemedText>
+              <ThemedText style={styles.helpItem}>• Choose Done to save your changes and return to the images.</ThemedText>
+              <ThemedText style={styles.helpResolution}>Image size {source.width} × {source.height} pixels</ThemedText>
+            </ScrollView>
+            <View style={styles.helpActions}>
+              <ToolButton label="Close help" icon="close" onPress={() => setHelpVisible(false)} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -331,12 +343,23 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#101820' },
   savingOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', alignItems: 'center', justifyContent: 'center', gap: 16 },
   savingText: { color: '#fff', fontSize: 17 },
-  instructions: { paddingHorizontal: 14, paddingTop: 8, paddingBottom: 6 },
-  title: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  helpText: { color: '#D5DEE3', fontSize: 13, lineHeight: 18, marginTop: 3 },
-  boxInstructions: { height: 54 },
-  imageInfo: { color: '#B5C4CD', fontSize: 12, marginTop: 3 },
-  modeBar: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 10, paddingBottom: 8 },
+  instructions: { paddingHorizontal: 14, paddingBottom: 6 },
+  headingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title: { flex: 1, color: '#fff', fontSize: 18, fontWeight: '700' },
+  helpButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  promptRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  helpText: { flex: 1, color: '#D5DEE3', fontSize: 16, lineHeight: 22 },
+  modeButton: { minHeight: 44, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 5,
+    borderRadius: 7, borderWidth: 1, borderColor: '#6C818E' },
+  modeText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  imageInfo: { color: '#D5DEE3', fontSize: 18, fontWeight: '600', lineHeight: 26, marginTop: 3 },
+  helpOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  helpCard: { width: '100%', maxWidth: 480, maxHeight: '90%', backgroundColor: '#182630', padding: 20, borderRadius: 12 },
+  helpTitle: { color: '#fff', fontSize: 22, fontWeight: '700', lineHeight: 28, marginBottom: 12 },
+  helpContent: { flexGrow: 0, marginBottom: 16 },
+  helpItem: { color: '#D5DEE3', fontSize: 16, lineHeight: 24, marginBottom: 12 },
+  helpResolution: { color: '#B5C4CD', fontSize: 14, lineHeight: 22 },
+  helpActions: { flexDirection: 'row' },
   viewport: { flex: 1, minHeight: 100, overflow: 'hidden', backgroundColor: '#000' },
   box: { position: 'absolute', borderWidth: 2, borderColor: '#ff3b30', backgroundColor: 'rgba(255,59,48,0.06)' },
   boxLabel: { position: 'absolute', left: -2, paddingHorizontal: 4, backgroundColor: '#b71c1c',
@@ -346,11 +369,11 @@ const styles = StyleSheet.create({
   saveBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 8, paddingBottom: 8 },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 8,
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#40515A' },
-  toolButton: { flexGrow: 1, minHeight: 44, minWidth: 44, paddingHorizontal: 9, paddingVertical: 7,
+  toolButton: { flexGrow: 1, flexBasis: 0, minHeight: 48, minWidth: 44, paddingHorizontal: 9, paddingVertical: 9,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
     borderRadius: 7, backgroundColor: '#40515A' },
   activeButton: { backgroundColor: '#236B3A', borderWidth: 1, borderColor: '#66DC8E' },
   disabledButton: { opacity: 0.35 },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   errorText: { color: '#fff', padding: 24 },
 });
