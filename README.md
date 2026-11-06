@@ -6,9 +6,11 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 
 - **Platform focus: Android.** Android saves through the Storage Access Framework; the web app uses browser-local IndexedDB storage, and iOS uses private internal storage (see below).
 - **Browser/PWA preview:** the same Expo app also exports to the web, with offline caching and browser-local batch storage. Android APK and AAB build options remain available.
-- **Fully local, no backend.** The app does not upload batches, images, or metadata to any server or cloud account. There is no login/account system.
+- **Collector details:** collector/team name, valid email address, organization, country and state are required. They are remembered on the current browser/device after Continue, prefilled for later batches, and editable on the same screen. Each batch retains its own details in `batch.txt` and PWA downloads.
+- **Handoff integration preview:** includes environment/planting-system fields, image EXIF, and a per-image bounding-box editor. See [integration details and the saved metadata example](docs/desktop-handoff-integration.md).
+- **Local collection plus a personal upload pilot.** The public PWA and native app retain local collection. A loopback-only S3 upload service supports a personal Arbutus test on this computer, with server-side credentials, explicit uploads and verified receipts. It is not connected to real storage until the owner's details and keys are configured. There is no public login/account system. See [local pilot setup](upload-service/README.md).
 - **Capture flow**: Location → Parameters (botanical name, site, background, growth stage, soil color, lighting) → Image capture or manual selection → Review & Save, with a slide-in page transition between steps and a success screen (with a **Done** button that returns to the home screen) after saving.
-- **Saved Batches screen**: lists previously saved batches on-device and allows deleting them.
+- **Saved Batches screen**: opens existing batches for annotation, downloads web batch ZIPs, and allows deleting local batches. The local upload pilot also displays an Upload batch action; this action is hidden on the public GitHub Pages app and native builds.
 - **Latest internal build**: [`releases/android/IWRC-Imaging-v1.0.0.apk`](releases/android/IWRC-Imaging-v1.0.0.apk) — a debug-signed APK for sideloading onto test devices (not published to the Play Store). Android will warn about installing from an unknown source; that's expected.
 
 ## Where data is saved
@@ -17,10 +19,19 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 
 - `image_001.jpg`, `image_002.jpg`, … — the captured/selected photos
 - `batch.txt` — the batch metadata (location, plant/site parameters, lighting, image list), written as indented JSON but saved with a `.txt` extension so it opens directly in any text viewer without a JSON-aware app
+- `image_001.txt`, `image_002.txt`, … — matching YOLO labels for each image, plus `classes.txt` naming the classes. Images without boxes have an empty label file.
 
 The chosen folder is remembered after the first save, so the picker only appears once per device.
 
 **In the browser/PWA**, photos and metadata are saved to IndexedDB on the current browser and device. They survive closing and reopening the page, but clearing this site's browser data removes them. They are not synchronized across browsers, devices, or the Android app. Private browsing may restrict storage. On phones, the camera option uses the browser's supported camera/file picker; desktops can select image files.
+
+The PWA remembers collector/location defaults in browser local storage; Android uses app-local preferences. These defaults are not sent to a server. Clearing site data or uninstalling the Android app removes the remembered defaults. Updating defaults affects future batches, not previously saved batches.
+
+Use the download icon on a Saved Batch to export its photos, readable metadata and YOLO labels as a ZIP. Each photo in capture, image selection or review has a large green **Annotate** button. In the editor, tap the image to place a red box with editable corners. Drag inside the box to move it, drag a corner to resize it, then press **Save box**. The editor stays open and the next tap can place another box, including an overlapping instance. Use **two fingers to zoom in/out and move the image**; there are no separate move, fit, or zoom buttons. **Edit boxes** selects existing boxes, and **Next box** selects and centers overlapping or offscreen boxes. **Delete box**, **Undo**, and **Redo** remain available; **Save changes** persists deletions or undone edits when no box is selected. New images start without an automatic box. Boxes show the selected weed name and can be resized down to one original-image pixel. Zooming changes the view only: saved YOLO coordinates still refer to the original image. **Done** saves the current annotation edits and returns to the image list. For a new collection, finish with **Review & Save → Save locally** to save the complete batch. Selected EXIF and embedded GPS are included when available in the source photo; metadata is read locally.
+
+In `batch.txt`, schema 5 groups metadata under each saved image filename. Each image has `resolution`, file type/size, available EXIF, and `bounding_box_coordinates` containing `instance_1`, `instance_2`, and so on. Each instance contains the weed name and YOLO-normalized `x_center`, `y_center`, `width`, and `height` (0–1). The matching YOLO label files are also retained. Older annotation formats remain readable; see [the metadata example](docs/batch-metadata-example.json).
+
+To annotate later, go to **Saved Batches → Open & annotate**, then choose a photo's green **Annotate / Edit annotation** button. **Save box** saves the annotations back to that same batch while staying on the image, and **Done** saves and returns to its photo gallery. Existing photo bytes, batch identity, collection metadata, and other images are preserved. Browser downloads include the updated annotations; Android updates the existing TXT files without replacing the photo folder. A failed save keeps the editor open with the box selected so you can retry. Older saved batches can be annotated without reentering collector details.
 
 **On iOS**, batches are saved instead to the app's private internal document storage (not visible in a file manager), since the Storage Access Framework is Android-only.
 

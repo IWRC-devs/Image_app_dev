@@ -1,0 +1,50 @@
+{
+  "schema_version": 5,
+  "batch_name": "field_batch",
+  "saved_at": "2026-10-29T12:00:00Z",
+  "collector": {
+    "name": "Sample Collector",
+    "email": "collector@example.org",
+    "organization": "Example Organization"
+  },
+  "location": {
+    "country": "United States",
+    "state": "Texas"
+  },
+  "parameters": {
+    "botanical_name": "Test specimen",
+    "growing_environment": "Greenhouse",
+    "planting_system": "Pot",
+    "background": "Crop",
+    "growth_stage": "Seedling",
+    "soil_color": "Brown",
+    "lighting": "Sunny"
+  },
+  "images": {
+    "image_001.png": {
+      "resolution": { "width": 200, "height": 100 },
+      "orientation": "landscape",
+      "mime_type": "image/png",
+      "file_size_bytes": 11,
+      "exif": { "camera_make": "Test", "camera_model": "Camera" },
+      "bounding_box_coordinates": {
+        "instance_1": {
+          "weed_name": "Test specimen",
+          "x_center": 0.5,
+          "y_center": 0.4,
+          "width": 0.2,
+          "height": 0.4
+        },
+        "instance_2": {
+          "weed_name": "Test specimen",
+          "x_center": 0.8,
+          "y_center": 0.4,
+          "width": 0.1,
+          "height": 0.4
+        }
+      }
+    }
+  },
+  "annotation_format": "YOLO normalized (class_id x_center y_center width height)",
+  "classes": ["Test specimen"]
+}

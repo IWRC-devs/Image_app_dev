@@ -1,0 +1,8 @@
+# Local upload-service credentials and transient transfer data.
+**/node_modules/
+**/.env
+**/.env.local
+**/.env.*.local
+upload-service/config.local.json
+upload-service/.data/
+upload-service/*.log

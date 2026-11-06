@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, ReactNode } from "react";
-import { ImageItem } from "@/types";
+import { CollectorDetails, ImageItem } from "@/types";
 
 export type { ImageItem } from "@/types";
 
-export type BatchData = {
+export type BatchData = CollectorDetails & {
   synced: any;
   id: string | null;
   name: string;
@@ -20,6 +20,9 @@ export type BatchData = {
   lightingId?: number;
   images: ImageItem[];
   selectedOption?: "manual" | "capture";
+  /** Editing annotations on an existing local batch, not creating a new batch. */
+  editingSavedBatch?: boolean;
+  savedAt?: string;
 };
 
 type BatchContextType = {
@@ -56,6 +59,9 @@ export const createNewBatch = (): BatchData => {
     id: null,
     name: formatBatchName(),
     affiliationId: undefined,
+    collectorName: null,
+    collectorEmail: null,
+    organization: null,
     locationCountry: null,
     locationState: null,
     locationCity: null,

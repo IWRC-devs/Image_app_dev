@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import {
   View,
   ScrollView,
-  Image,
   TouchableOpacity,
   StyleSheet,
   Platform,
@@ -15,9 +14,10 @@ import { SuccessOverlay } from "@/components/SuccessOverlay";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { createNewBatch, formatBatchName, useBatch } from "../../context/BatchContext";
-import { Ionicons } from "@expo/vector-icons";
+import { AnnotationImageCard } from '@/components/AnnotationImageCard';
 import { saveBatch } from "@/utils/batchStore";
 import { showAlert } from "@/utils/alerts";
+import { getCollectorProfileError } from '@/utils/collectorProfile';
 
 export default function ReviewSummaryScreen() {
   const router = useRouter();
@@ -43,7 +43,16 @@ export default function ReviewSummaryScreen() {
     setBatchData({ ...batchData, images: updatedImages });
   };
 
+  const annotateImage = (id: string) => {
+    router.push({ pathname: "/screens/imaging/annotation-editor", params: { imageId: id } });
+  };
+
   const validateBatch = (): boolean => {
+    const collectorError = getCollectorProfileError(batchData);
+    if (collectorError) {
+      showAlert('Complete collector and location details', collectorError);
+      return false;
+    }
     const requiredFields = [
       batchData.name,
       batchData.locationCountry,
@@ -137,6 +146,9 @@ export default function ReviewSummaryScreen() {
           <View style={styles.summaryBox}>
             {[
               { label: "Batch Name", value: batchData.name || formatBatchName() },
+              { label: "Collector / team", value: batchData.collectorName || 'Not provided' },
+              { label: "Email", value: batchData.collectorEmail || 'Not provided' },
+              { label: "Organization", value: batchData.organization || 'Not provided' },
               { label: "Location", value: locationText },
               { label: "Botanical name", value: batchData.botanicalName },
               { label: "Growing environment", value: batchData.growingEnvironment },
@@ -163,16 +175,9 @@ export default function ReviewSummaryScreen() {
             Selected Images ({selectedImages.length})
           </ThemedText>
           <View style={styles.grid}>
-            {selectedImages.map((item) => (
-              <View key={item.id} style={styles.imageWrapper}>
-                <Image source={{ uri: item.uri }} style={styles.thumbnail} />
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => removeImage(item.id)}
-                >
-                  <Ionicons name="close-circle" size={24} color="red" />
-                </TouchableOpacity>
-              </View>
+            {selectedImages.map((item, index) => (
+              <AnnotationImageCard key={item.id} image={item} index={index} weedName={batchData.botanicalName}
+                onAnnotate={() => annotateImage(item.id)} onRemove={() => removeImage(item.id)} />
             ))}
           </View>
 
@@ -213,6 +218,7 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
+    gap: 12,
   },
   summaryBox: {
     borderRadius: 8,
@@ -246,27 +252,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: 12,
     color: "#fff",
-  },
-  imageWrapper: {
-    position: "relative",
-    margin: 8,
-  },
-  thumbnail: {
-    width: 100,
-    height: 100,
-    borderRadius: 8,
-  },
-  removeButton: {
-    position: "absolute",
-    top: -10,
-    right: -10,
-    backgroundColor: "white",
-    borderRadius: 60,
-    width: 25,
-    height: 25,
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1,
   },
   continueButton: {
     marginTop: 12,
