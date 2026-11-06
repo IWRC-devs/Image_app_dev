@@ -11,7 +11,7 @@ A mobile field-data app for capturing weed imaging batches (location, plant/site
 - **Local collection plus a personal upload pilot.** The public PWA and native app retain local collection. A loopback-only S3 upload service supports a personal Arbutus test on this computer, with server-side credentials, explicit uploads and verified receipts. It is not connected to real storage until the owner's details and keys are configured. There is no public login/account system. See [local pilot setup](upload-service/README.md).
 - **Capture flow**: Location → Parameters (botanical name, site, background, growth stage, soil color, lighting) → Image capture or manual selection → Review & Save, with a slide-in page transition between steps and a success screen (with a **Done** button that returns to the home screen) after saving.
 - **Saved Batches screen**: opens existing batches for annotation, downloads web batch ZIPs, and allows deleting local batches. The local upload pilot also displays an Upload batch action; this action is hidden on the public GitHub Pages app and native builds.
-- **Latest internal build**: [`releases/android/IWRC-Imaging-v1.0.0.apk`](releases/android/IWRC-Imaging-v1.0.0.apk) — a debug-signed APK for sideloading onto test devices (not published to the Play Store). Android will warn about installing from an unknown source; that's expected.
+- **Latest Android release**: [IWRC Imaging v1.0.1](https://github.com/IWRC-devs/Image_app_dev/releases/tag/v1.0.1) — signed APK, Android build number 2. The APK is also saved in [`releases/android`](releases/android/IWRC-Imaging-v1.0.1.apk).
 
 ## Where data is saved
 
