@@ -1,7 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { useBatch } from '@/app/context/BatchContext';
 import { AnnotationImageCard } from '@/components/AnnotationImageCard';
 import { ThemedText } from '@/components/ThemedText';
@@ -43,11 +42,6 @@ export default function SavedBatchScreen() {
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <TouchableOpacity accessibilityRole="button" style={styles.backButton}
-          onPress={() => router.replace('/screens/imaging/pending-uploads')}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
-          <ThemedText style={styles.backText}>Saved Batches</ThemedText>
-        </TouchableOpacity>
         {loading ? <ActivityIndicator accessibilityLabel="Opening saved batch" size="large" color="#4caf50" />
           : error || !batch ? <ThemedText>{error || 'Please reopen this batch.'}</ThemedText> : <>
             <ThemedText style={styles.title}>{batch.name}</ThemedText>
@@ -73,8 +67,6 @@ export default function SavedBatchScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 16, paddingBottom: 110 },
-  backButton: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, marginBottom: 12 },
-  backText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   title: { fontSize: 21, fontWeight: '700', marginBottom: 8 },
   details: { color: '#b7bec4', fontSize: 14, marginBottom: 4 },
   note: { color: '#b7bec4', fontSize: 14, marginTop: 8, marginBottom: 18 },

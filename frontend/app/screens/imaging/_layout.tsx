@@ -3,6 +3,7 @@ import React from 'react';
 import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
+import { ImagingBackButton } from '@/components/ImagingBackButton';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Ionicons } from '@expo/vector-icons';
 import { BatchProvider } from '@/app/context/BatchContext';
@@ -11,6 +12,7 @@ export default function ImagingLayout() {
   return (
     <BatchProvider>
         <Tabs
+          backBehavior="history"
           screenOptions={{
             tabBarActiveTintColor: '#4CAF50',
             tabBarInactiveTintColor: 'rgba(255,255,255,0.5)',
@@ -20,6 +22,7 @@ export default function ImagingLayout() {
             headerTitle: 'IWRC Imaging',
             headerTitleAlign: 'center',
             headerShown: true,
+            headerLeft: () => <ImagingBackButton />,
             tabBarButton: HapticTab,
             tabBarBackground: TabBarBackground,
             tabBarStyle: Platform.select({

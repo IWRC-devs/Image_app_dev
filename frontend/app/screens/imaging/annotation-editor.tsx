@@ -1,14 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, GestureResponderEvent, Image, Modal, PanResponder, Platform, SafeAreaView, ScrollView, StyleSheet,
+  ActivityIndicator, GestureResponderEvent, Image, Modal, PanResponder, Platform, ScrollView, StyleSheet,
   TouchableOpacity, View, ViewStyle,
 } from 'react-native';
 import uuid from 'react-native-uuid';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useBatch } from '@/app/context/BatchContext';
 import { ThemedText } from '@/components/ThemedText';
+import { ImagingBackButton } from '@/components/ImagingBackButton';
 import type { BoundingBoxAnnotation, ImageItem } from '@/types';
 import { completeAnnotationEdit } from '@/utils/annotationEditing';
 import { showAlert } from '@/utils/alerts';
@@ -46,11 +48,13 @@ function ToolButton({ label, icon, onPress, disabled = false, active = false }: 
   );
 }
 
-function AnnotationCanvas({ image, weedName, onSave, onDone }: {
+function AnnotationCanvas({ image, weedName, onSave, onDone, onBack }: {
   image: ImageItem; weedName: string;
   onSave: (boxes: BoundingBoxAnnotation[], source: Size) => Promise<boolean>;
   onDone: (boxes: BoundingBoxAnnotation[], source: Size) => Promise<boolean>;
+  onBack: (boxes: BoundingBoxAnnotation[], source: Size) => Promise<boolean>;
 }) {
+  const navigation = useNavigation();
   const [source, setSource] = useState<Size>({ width: image.width || 1, height: image.height || 1 });
   const [sizeReady, setSizeReady] = useState(Boolean(image.width && image.height));
   const [viewport, setViewport] = useState<Size>({ width: 0, height: 0 });
@@ -67,6 +71,13 @@ function AnnotationCanvas({ image, weedName, onSave, onDone }: {
 
   const updateHistory = (next: AnnotationHistory) => { historyRef.current = next; setHistory(next); };
   const updateView = (next: CanvasView) => { viewRef.current = next; setView(next); };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => <ImagingBackButton disabled={savingBox}
+        onPress={sizeReady ? () => { void onBack(historyRef.current.present.boxes, source); } : undefined} />,
+    });
+  }, [navigation, onBack, savingBox, sizeReady, source]);
 
   useEffect(() => {
     if (image.width && image.height) return;
@@ -202,7 +213,7 @@ function AnnotationCanvas({ image, weedName, onSave, onDone }: {
       selectedId: remaining[Math.min(selectedIndex, remaining.length - 1)]?.id ?? null }));
   };
   return (
-    <SafeAreaView style={styles.screen}>
+    <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.screen}>
       <View style={styles.instructions}>
         <View style={styles.headingRow}>
           <ThemedText style={styles.title} numberOfLines={1}>{weedName}</ThemedText>
@@ -256,14 +267,16 @@ function AnnotationCanvas({ image, weedName, onSave, onDone }: {
           accessibilityLabel="Tap to add a box, adjust its corners, then Save box. Use two fingers to zoom and move the image."
           {...responder.panHandlers} />
       </View>
-      <View style={styles.toolbar}>
-        <ToolButton label={savingBox ? 'Saving…' : 'Save box'} icon="save-outline" active
-          disabled={!sizeReady || savingBox || (!selected && !dirty)} onPress={saveBox} />
-        <ToolButton label="Delete box" icon="trash-outline" disabled={!selected || savingBox} onPress={deleteSelected} />
-      </View>
-      <View style={styles.saveBar}>
-        <ToolButton label="Done" icon="checkmark" active disabled={!sizeReady || savingBox}
-          onPress={() => onDone(historyRef.current.present.boxes, source)} />
+      <View style={styles.actions}>
+        <View style={styles.toolbar}>
+          <ToolButton label={savingBox ? 'Saving…' : 'Save box'} icon="save-outline" active
+            disabled={!sizeReady || savingBox || (!selected && !dirty)} onPress={saveBox} />
+          <ToolButton label="Delete box" icon="trash-outline" disabled={!selected || savingBox} onPress={deleteSelected} />
+        </View>
+        <View style={styles.saveBar}>
+          <ToolButton label="Done" icon="checkmark" active disabled={!sizeReady || savingBox}
+            onPress={() => onDone(historyRef.current.present.boxes, source)} />
+        </View>
       </View>
       <Modal visible={helpVisible} transparent animationType="fade" onRequestClose={() => setHelpVisible(false)}>
         <View style={styles.helpOverlay}>
@@ -300,21 +313,23 @@ export default function AnnotationEditorScreen() {
   useFocusEffect(useCallback(() => { setEditorSession(current => current + 1); }, []));
   const image = batchData?.images.find(item => item.id === imageId);
   if (!batchData || !image) return (
-    <SafeAreaView style={styles.screen}><ThemedText style={styles.errorText}>This image is no longer available.</ThemedText></SafeAreaView>
+    <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.screen}>
+      <ThemedText style={styles.errorText}>This image is no longer available.</ThemedText>
+    </SafeAreaView>
   );
-  const persistAnnotations = async (boxes: BoundingBoxAnnotation[], source: Size, close: boolean): Promise<boolean> => {
+  const persistAnnotations = async (boxes: BoundingBoxAnnotation[], source: Size, close: false | 'done' | 'back'): Promise<boolean> => {
       if (savingRef.current) return false;
       savingRef.current = true;
       setSaving(true);
       try {
         const result = completeAnnotationEdit(batchData, image.id, boxes, source);
-        if (batchData.editingSavedBatch) {
-          const saved = await saveOpenedBatch(result.batch, saveBatchAnnotations);
-          setBatchData(saved);
-          if (close) router.replace({ pathname: '/screens/imaging/saved-batch', params: { batchId: saved.id! } });
-        } else {
-          setBatchData(result.batch);
-          if (close) router.replace(result.route);
+        const updated = batchData.editingSavedBatch
+          ? await saveOpenedBatch(result.batch, saveBatchAnnotations) : result.batch;
+        setBatchData(updated);
+        if (close === 'back' && router.canGoBack()) router.back();
+        else if (close) {
+          router.replace(batchData.editingSavedBatch
+            ? { pathname: '/screens/imaging/saved-batch', params: { batchId: updated.id! } } : result.route);
         }
         return true;
       } catch (error) {
@@ -329,7 +344,8 @@ export default function AnnotationEditorScreen() {
     <AnnotationCanvas key={`${batchData.id ?? batchData.name}:${image.id}:${editorSession}`}
       image={image} weedName={batchData.botanicalName || 'Weed of interest'}
       onSave={(boxes, source) => persistAnnotations(boxes, source, false)}
-      onDone={(boxes, source) => persistAnnotations(boxes, source, true)} />
+      onDone={(boxes, source) => persistAnnotations(boxes, source, 'done')}
+      onBack={(boxes, source) => persistAnnotations(boxes, source, 'back')} />
     <Modal visible={saving} transparent animationType="fade" onRequestClose={() => {}}>
       <View style={styles.savingOverlay}>
         <ActivityIndicator size="large" color="#4caf50" />
@@ -340,10 +356,10 @@ export default function AnnotationEditorScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#101820' },
+  screen: { flex: 1, minHeight: 0, backgroundColor: '#101820' },
   savingOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', alignItems: 'center', justifyContent: 'center', gap: 16 },
   savingText: { color: '#fff', fontSize: 17 },
-  instructions: { paddingHorizontal: 14, paddingBottom: 6 },
+  instructions: { flexShrink: 0, paddingHorizontal: 14, paddingBottom: 6 },
   headingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { flex: 1, color: '#fff', fontSize: 18, fontWeight: '700' },
   helpButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
@@ -360,12 +376,13 @@ const styles = StyleSheet.create({
   helpItem: { color: '#D5DEE3', fontSize: 16, lineHeight: 24, marginBottom: 12 },
   helpResolution: { color: '#B5C4CD', fontSize: 14, lineHeight: 22 },
   helpActions: { flexDirection: 'row' },
-  viewport: { flex: 1, minHeight: 100, overflow: 'hidden', backgroundColor: '#000' },
+  viewport: { flex: 1, minHeight: 0, overflow: 'hidden', backgroundColor: '#000' },
   box: { position: 'absolute', borderWidth: 2, borderColor: '#ff3b30', backgroundColor: 'rgba(255,59,48,0.06)' },
   boxLabel: { position: 'absolute', left: -2, paddingHorizontal: 4, backgroundColor: '#b71c1c',
     color: '#fff', fontSize: 12, lineHeight: 20, fontWeight: '700' },
   handle: { position: 'absolute', width: 26, height: 26, borderRadius: 13,
     borderWidth: 2, borderColor: '#101820', backgroundColor: '#ff3b30' },
+  actions: { flexShrink: 0, paddingBottom: 12 },
   saveBar: { flexDirection: 'row', gap: 8, paddingHorizontal: 8, paddingBottom: 8 },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 8,
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#40515A' },

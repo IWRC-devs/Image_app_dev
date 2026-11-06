@@ -247,6 +247,8 @@ const styles = StyleSheet.create({
   container: { padding: 0, flexGrow: 1 },
   sectionTitle: {
     fontSize: 32,
+    lineHeight: 42,
+    paddingVertical: 2,
     fontWeight: "700",
     color: "#fff",
     marginBottom: 8,
