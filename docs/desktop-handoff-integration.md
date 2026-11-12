@@ -19,7 +19,7 @@ Saved Batches has an Open & annotate action. Save box persists changes without l
 New Android saves and PWA ZIP downloads use:
 
 ```text
-IWRC/
+IWRC Imaging/
   <batch name>/
     image_001.jpg
     image_002.jpg

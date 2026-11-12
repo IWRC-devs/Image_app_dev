@@ -14,7 +14,7 @@ export function BatchFolderButton({ onConnected }: { onConnected: () => Promise<
       await connectSavedBatchFolder();
       await onConnected();
     } catch {
-      showAlert('Unable to open folder', 'Please select the IWRC folder or the older folder containing your batches.');
+      showAlert('Unable to open folder', 'Please select the IWRC Imaging folder or the older folder containing your batches.');
     } finally { setBusy(false); }
   };
   return <TouchableOpacity style={styles.button} accessibilityRole="button" disabled={busy}

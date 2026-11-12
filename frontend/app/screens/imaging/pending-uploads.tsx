@@ -75,7 +75,7 @@ export default function SavedBatchesScreen() {
         <ThemedText style={styles.privacyNote}>
           {Platform.OS === 'web'
             ? "Saved in this browser on this device. Clearing this site's browser data removes local batches. Exported or uploaded copies are kept separately."
-            : 'New batches are saved under IWRC. Open an older batch folder here if your saved images are missing from this list.'}
+            : 'New batches are saved under IWRC Imaging. Open an older batch folder here if your saved images are missing from this list.'}
         </ThemedText>
         <BatchFolderButton onConnected={loadBatches} />
 

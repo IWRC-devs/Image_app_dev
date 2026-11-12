@@ -65,9 +65,9 @@ test('previous flat schemas and unannotated photos still load', () => {
 test('download contains IWRC, the batch folder, image bytes and a single COCO metadata TXT', async () => {
   const batch = { ...fixture, images: [...fixture.images, { ...fixture.images[0], id: 'negative', annotations: [] }] };
   const files = unzipSync(await createBatchArchive(batch, lighting));
-  assert.deepEqual(Object.keys(files).sort(), ['IWRC/field_batch/batch.txt', 'IWRC/field_batch/image_001.png', 'IWRC/field_batch/image_002.png']);
-  assert.equal(strFromU8(files['IWRC/field_batch/image_001.png']), 'image-bytes');
-  const metadata = JSON.parse(strFromU8(files['IWRC/field_batch/batch.txt']));
+  assert.deepEqual(Object.keys(files).sort(), ['IWRC Imaging/field_batch/batch.txt', 'IWRC Imaging/field_batch/image_001.png', 'IWRC Imaging/field_batch/image_002.png']);
+  assert.equal(strFromU8(files['IWRC Imaging/field_batch/image_001.png']), 'image-bytes');
+  const metadata = JSON.parse(strFromU8(files['IWRC Imaging/field_batch/batch.txt']));
   assert.equal(Object.keys(metadata.images['image_001.png'].bounding_box_coordinates).length, 2);
   assert.deepEqual(metadata.images['image_002.png'].bounding_box_coordinates, {});
   assert.deepEqual(metadata.images['image_001.png'].resolution, { width: 200, height: 100 });

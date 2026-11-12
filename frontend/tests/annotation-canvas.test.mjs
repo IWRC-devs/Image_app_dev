@@ -197,7 +197,7 @@ test('a small box drawn in a zoomed view survives Done and exports original-imag
     botanicalName: 'Selected species', images: [image], selectedOption: 'manual' };
   const completed = completeAnnotationEdit(batch, image.id, [annotation], source);
   const files = unzipSync(await createBatchArchive(completed.batch));
-  const metadata = JSON.parse(strFromU8(files['IWRC/batch/batch.txt']));
+  const metadata = JSON.parse(strFromU8(files['IWRC Imaging/batch/batch.txt']));
   const savedBox = metadata.images['image_001.jpg'].bounding_box_coordinates.instance_1;
   assert.deepEqual(savedBox.bbox, [2000, 1200, 80, 60]);
   assert.equal(savedBox.area, 4800);

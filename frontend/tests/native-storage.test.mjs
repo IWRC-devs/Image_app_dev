@@ -102,13 +102,13 @@ const annotation = { id: 'box', classId: 0, xCenter: 0.5, yCenter: 0.5, width: 0
 const batch = { id: 'old-id', name: 'Field batch', botanicalName: 'Species', savedAt: '2026-11-12T12:00:00Z',
   images: [{ id: 'photo', uri: 'file:///selected.jpg', fileName: 'selected.jpg', width: 200, height: 100, annotations: [annotation] }] };
 
-test('Android new saves use IWRC/batch-name with photos and one batch.txt, and retry partial saves safely', async () => {
+test('Android new saves use IWRC Imaging/batch-name with photos and one batch.txt, and retry partial saves safely', async () => {
   const store = nativeStore();
   store.files.set(batch.images[0].uri, 'cGhvdG8=');
   store.interruptMetadata();
   await assert.rejects(store.api.saveBatch(batch), /Interrupted/);
   const saved = await store.api.saveBatch(batch);
-  assert.equal(saved.storageDirectoryUri, 'content://documents/IWRC/Field batch');
+  assert.equal(saved.storageDirectoryUri, 'content://documents/IWRC Imaging/Field batch');
   assert.deepEqual(store.directories.get(saved.storageDirectoryUri).map(uri => uri.split('/').at(-1)), ['image_001.jpg', 'batch.txt']);
   const written = JSON.parse(store.files.get(saved.storageDirectoryUri + '/batch.txt'));
   assert.deepEqual(written.coco.annotations[0].bbox, [80, 30, 40, 40]);
@@ -122,12 +122,16 @@ test('Android new saves use IWRC/batch-name with photos and one batch.txt, and r
   assert.deepEqual(store.files, previous);
 });
 
-test('Android legacy SAF batches survive new-root creation and repeated annotation saves', async () => {
+for (const [folderName, preferenceKey] of [
+  ['IWRC imaging', 'iwrc_imaging_root_directory_uri'],
+  ['IWRC', 'iwrc_images_root_directory_uri'],
+]) {
+test(`Android ${folderName} batches survive the folder-name update and repeated annotation saves`, async () => {
   const store = nativeStore();
-  const root = store.addDirectory('content://documents/IWRC imaging');
+  const root = store.addDirectory(`content://documents/${folderName}`);
   const folder = store.addDirectory(root + '/older');
   store.directories.get(root).push(folder);
-  store.preferences.set('iwrc_imaging_root_directory_uri', root);
+  store.preferences.set(preferenceKey, root);
   const imageUri = store.addFile(folder, 'old.jpg', 'ORIGINAL-PHOTO');
   store.addFile(folder, 'batch.txt', JSON.stringify({ ...batch, id: 'older', images: [{ id: 'legacy-uuid', uri: imageUri, annotations: [] }] }));
   let saved = (await store.api.getSavedBatches())[0];
@@ -143,10 +147,12 @@ test('Android legacy SAF batches survive new-root creation and repeated annotati
   assert.ok(store.writes.every(uri => uri.endsWith('/batch.txt')));
   assert.deepEqual(store.removed, []);
   store.files.set(batch.images[0].uri, 'cGhvdG8=');
-  await store.api.saveBatch(batch);
+  const current = await store.api.saveBatch(batch);
+  assert.equal(current.storageDirectoryUri, `${folderName === 'IWRC imaging' ? root : 'content://documents/IWRC Imaging'}/Field batch`);
   assert.equal((await store.api.getSavedBatches()).length, 2);
-  assert.equal(store.preferences.get('iwrc_imaging_root_directory_uri'), root);
+  assert.equal(store.preferences.get(preferenceKey), root);
 });
+}
 
 test('Android users can reconnect an older folder after preferences are missing', async () => {
   const store = nativeStore();
@@ -177,14 +183,30 @@ test('legacy private JSON batches can be annotated and reopened on Android', asy
   assert.equal(store.files.get(batch.images[0].uri), 'ORIGINAL');
 });
 
-test('new private saves have the same flat IWRC batch layout and support repeated edits', async () => {
+test('new private saves have the same flat IWRC Imaging batch layout and support repeated edits', async () => {
   const store = nativeStore('ios');
   store.files.set(batch.images[0].uri, 'ORIGINAL');
   const saved = await store.api.saveBatch(batch);
-  assert.equal(saved.storageDirectoryUri, 'file:///app/IWRC/Field batch/');
+  assert.equal(saved.storageDirectoryUri, 'file:///app/IWRC Imaging/Field batch/');
   const [opened] = await store.api.getSavedBatches();
   opened.images[0].annotations = [];
   await store.api.saveBatchAnnotations(opened);
   assert.equal((await store.api.getSavedBatches())[0].images[0].annotations.length, 0);
   assert.equal(store.files.get(saved.images[0].uri), 'ORIGINAL');
+});
+
+test('private batches saved under the previous IWRC name remain editable after the folder name changes', async () => {
+  const store = nativeStore('ios');
+  const root = store.addDirectory('file:///app/IWRC');
+  const folder = store.addDirectory(root + '/older');
+  store.directories.get(root).push(folder);
+  const uri = store.addFile(folder, 'old.jpg', 'ORIGINAL');
+  store.addFile(folder, 'batch.txt', JSON.stringify({ ...batch, id: 'older',
+    images: [{ id: 'old-photo', uri, fileName: 'old.jpg', width: 200, height: 100 }] }));
+  const [opened] = await store.api.getSavedBatches();
+  opened.images[0].annotations = [annotation];
+  await store.api.saveBatchAnnotations(opened);
+  assert.equal((await store.api.getSavedBatches())[0].images[0].annotations.length, 1);
+  assert.equal(store.files.get(uri), 'ORIGINAL');
+  assert.ok(store.writes.every(path => path === folder + '/batch.txt'));
 });

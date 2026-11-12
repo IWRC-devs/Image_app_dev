@@ -41,7 +41,7 @@ function displayName(value: string) {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 }
 
-export const ROOT_DIRECTORY_NAME = 'IWRC';
+export const ROOT_DIRECTORY_NAME = 'IWRC Imaging';
 
 export function batchFolderName(batch: Pick<StoredBatch, 'name' | 'id'>) {
   return (batch.name || batch.id || 'batch').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_')

@@ -9,15 +9,18 @@ import { batchClasses, batchFolderName, imageExtension, imageMimeType, ROOT_DIRE
 import { ensureImageDimensions } from '@/utils/imageDimensions';
 
 const BATCHES_DIR = `${FileSystem.documentDirectory}${ROOT_DIRECTORY_NAME}/`;
+const PREVIOUS_BATCHES_DIR = `${FileSystem.documentDirectory}IWRC/`;
 const LEGACY_BATCHES_DIR = `${FileSystem.documentDirectory}batches/`;
 const METADATA_FILE_NAME = 'batch.txt';
-const ROOT_DIRECTORY_URI_KEY = 'iwrc_images_root_directory_uri';
+const ROOT_DIRECTORY_URI_KEY = 'iwrc_imaging_named_root_directory_uri';
+const PREVIOUS_ROOT_URI_KEY = 'iwrc_images_root_directory_uri';
 const LEGACY_ROOT_URI_KEY = 'iwrc_imaging_root_directory_uri';
 const CONNECTED_ROOTS_KEY = 'iwrc_connected_batch_directories';
 const LIGHTING_OPTIONS = require('@/assets/data/lighting.json') as { id: number; name: string }[];
 const USE_DEVICE_FOLDER = Platform.OS === 'android';
 
 const fileNameFromUri = (uri: string) => decodeURIComponent(uri).split('/').pop() ?? uri;
+const isImagingRoot = (uri: string) => fileNameFromUri(uri).toLowerCase() === ROOT_DIRECTORY_NAME.toLowerCase();
 const toInternalMetadata = (batch: StoredBatch) => serializeBatch(batch, LIGHTING_OPTIONS);
 function normalizeLocalBatch(content: unknown, id: string, byName: Record<string, string> = {}) {
   const batch = normalizeBatch(content, id, byName, LIGHTING_OPTIONS);
@@ -45,10 +48,11 @@ async function connectedRoots(): Promise<string[]> {
   } catch { return []; }
 }
 
-/** New saves use IWRC. The old root preference remains available for older batches. */
+/** New saves use IWRC Imaging. Earlier root preferences remain available for older batches. */
 async function getRootDirectoryUri(promptIfMissing: boolean): Promise<string | null> {
-  const savedUri = await AsyncStorage.getItem(ROOT_DIRECTORY_URI_KEY);
-  if (savedUri) {
+  const savedUri = await AsyncStorage.getItem(ROOT_DIRECTORY_URI_KEY)
+    ?? await AsyncStorage.getItem(LEGACY_ROOT_URI_KEY);
+  if (savedUri && isImagingRoot(savedUri)) {
     try {
       await FileSystem.StorageAccessFramework.readDirectoryAsync(savedUri);
       return savedUri;
@@ -59,8 +63,8 @@ async function getRootDirectoryUri(promptIfMissing: boolean): Promise<string | n
     FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Documents'));
   if (!permission.granted) throw new Error('Folder permission was not granted.');
   const selected = permission.directoryUri;
-  const rootUri = fileNameFromUri(selected) === ROOT_DIRECTORY_NAME ? selected
-    : await findChildUri(selected, ROOT_DIRECTORY_NAME)
+  const rootUri = isImagingRoot(selected) ? selected
+    : (await FileSystem.StorageAccessFramework.readDirectoryAsync(selected)).find(isImagingRoot)
       ?? await FileSystem.StorageAccessFramework.makeDirectoryAsync(selected, ROOT_DIRECTORY_NAME);
   await AsyncStorage.setItem(ROOT_DIRECTORY_URI_KEY, rootUri);
   return rootUri;
@@ -74,9 +78,8 @@ export async function connectSavedBatchFolder(): Promise<void> {
   if (!permission.granted) return;
   const selected = permission.directoryUri;
   const children = await FileSystem.StorageAccessFramework.readDirectoryAsync(selected);
-  const roots = children.filter(uri => [ROOT_DIRECTORY_NAME, 'IWRC imaging'].includes(fileNameFromUri(uri)));
-  const newRoot = fileNameFromUri(selected) === ROOT_DIRECTORY_NAME ? selected
-    : roots.find(uri => fileNameFromUri(uri) === ROOT_DIRECTORY_NAME);
+  const roots = children.filter(uri => [ROOT_DIRECTORY_NAME, 'IWRC imaging', 'IWRC'].includes(fileNameFromUri(uri)));
+  const newRoot = isImagingRoot(selected) ? selected : roots.find(isImagingRoot);
   if (newRoot) await AsyncStorage.setItem(ROOT_DIRECTORY_URI_KEY, newRoot);
   await AsyncStorage.setItem(CONNECTED_ROOTS_KEY, JSON.stringify(
     [...new Set([...await connectedRoots(), ...(roots.length ? roots : [selected])])]));
@@ -132,7 +135,8 @@ async function readDeviceBatch(directory: string): Promise<StoredBatch | null> {
 }
 
 async function getSavedBatchesFromDeviceFolder(): Promise<StoredBatch[]> {
-  const roots = [...new Set([await getRootDirectoryUri(false), await AsyncStorage.getItem(LEGACY_ROOT_URI_KEY),
+  const roots = [...new Set([await getRootDirectoryUri(false), await AsyncStorage.getItem(PREVIOUS_ROOT_URI_KEY),
+    await AsyncStorage.getItem(LEGACY_ROOT_URI_KEY),
     ...await connectedRoots()].filter((uri): uri is string => Boolean(uri)))];
   const batches: StoredBatch[] = [];
   for (const root of roots) {
@@ -193,7 +197,7 @@ async function readInternalBatch(uri: string, fallbackId: string): Promise<Store
 
 async function getSavedBatchesInternal(): Promise<StoredBatch[]> {
   const batches: StoredBatch[] = [];
-  for (const root of [BATCHES_DIR, LEGACY_BATCHES_DIR]) {
+  for (const root of [BATCHES_DIR, PREVIOUS_BATCHES_DIR, LEGACY_BATCHES_DIR]) {
     if (!(await FileSystem.getInfoAsync(root)).exists) continue;
     for (const entry of await FileSystem.readDirectoryAsync(root)) {
       try {

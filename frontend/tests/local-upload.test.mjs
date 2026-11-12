@@ -26,7 +26,7 @@ test('an unchanged batch exports byte-identically later, so retries do not creat
   t.mock.timers.enable({ apis: ['Date'], now: Date.now() + 60_000 });
   const second = await createBatchArchive(batch);
   assert.deepEqual(second, first);
-  const metadata = JSON.parse(strFromU8(unzipSync(second)['IWRC/Batch/batch.txt']));
+  const metadata = JSON.parse(strFromU8(unzipSync(second)['IWRC Imaging/Batch/batch.txt']));
   assert.equal(metadata.saved_at, batch.savedAt);
 });
 
@@ -48,8 +48,8 @@ test('upload transfers the complete ZIP and accepts only a matching verified rec
   assert.equal(receipt.sha256, hash(uploaded));
   assert.deepEqual(phases, ['preparing', 'uploading']);
   const files = unzipSync(uploaded);
-  assert.deepEqual(Object.keys(files).sort(), ['IWRC/Batch/batch.txt', 'IWRC/Batch/image_001.png']);
-  assert.deepEqual(JSON.parse(strFromU8(files['IWRC/Batch/batch.txt'])).coco.annotations[0].bbox, [80, 40, 40, 20]);
+  assert.deepEqual(Object.keys(files).sort(), ['IWRC Imaging/Batch/batch.txt', 'IWRC Imaging/Batch/image_001.png']);
+  assert.deepEqual(JSON.parse(strFromU8(files['IWRC Imaging/Batch/batch.txt'])).coco.annotations[0].bbox, [80, 40, 40, 20]);
   assert.deepEqual(batch, before);
 });
 
