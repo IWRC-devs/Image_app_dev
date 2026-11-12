@@ -1,282 +1,210 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
-import { Platform } from 'react-native';
+import { Image, Platform } from 'react-native';
 
 import type { ImageItem, StoredBatch } from '@/types';
 import { writeSavedAnnotationFiles } from '@/utils/savedAnnotationFiles';
-import { batchClasses, imageExtension, imageMimeType, labelFileName, normalizeSavedBatch as normalizeBatch, toInternalMetadata as serializeBatch, yoloLine } from '@/utils/batchMetadata';
+import { batchClasses, batchFolderName, imageExtension, imageMimeType, ROOT_DIRECTORY_NAME,
+  normalizeSavedBatch as normalizeBatch, toInternalMetadata as serializeBatch } from '@/utils/batchMetadata';
+import { ensureImageDimensions } from '@/utils/imageDimensions';
 
-const BATCHES_DIR = `${FileSystem.documentDirectory}batches/`;
+const BATCHES_DIR = `${FileSystem.documentDirectory}${ROOT_DIRECTORY_NAME}/`;
+const LEGACY_BATCHES_DIR = `${FileSystem.documentDirectory}batches/`;
 const METADATA_FILE_NAME = 'batch.txt';
-const ROOT_DIRECTORY_NAME = 'IWRC imaging';
-const ROOT_DIRECTORY_URI_KEY = 'iwrc_imaging_root_directory_uri';
+const ROOT_DIRECTORY_URI_KEY = 'iwrc_images_root_directory_uri';
+const LEGACY_ROOT_URI_KEY = 'iwrc_imaging_root_directory_uri';
+const CONNECTED_ROOTS_KEY = 'iwrc_connected_batch_directories';
 const LIGHTING_OPTIONS = require('@/assets/data/lighting.json') as { id: number; name: string }[];
-
-// Android has no writable path apps can reach without either a Storage Access
-// Framework grant or the (Play Store discouraged) all-files permission, so
-// batches are saved into a folder the user picks via SAF. Other platforms
-// fall back to the app's private document directory.
 const USE_DEVICE_FOLDER = Platform.OS === 'android';
 
-async function ensureDirectory(uri: string) {
-  const info = await FileSystem.getInfoAsync(uri);
-  if (!info.exists) {
-    await FileSystem.makeDirectoryAsync(uri, { intermediates: true });
-  }
-}
-
-function safePathSegment(value: string) {
-  return value.replace(/[\\/:*?"<>|]/g, '_');
-}
-
-const normalizeSavedBatch = (batch: unknown, fallbackId?: string, imageUrisByName: Record<string, string> = {}) =>
-  normalizeBatch(batch, fallbackId, imageUrisByName, LIGHTING_OPTIONS);
+const fileNameFromUri = (uri: string) => decodeURIComponent(uri).split('/').pop() ?? uri;
 const toInternalMetadata = (batch: StoredBatch) => serializeBatch(batch, LIGHTING_OPTIONS);
+function normalizeLocalBatch(content: unknown, id: string, byName: Record<string, string> = {}) {
+  const batch = normalizeBatch(content, id, byName, LIGHTING_OPTIONS);
+  return { ...batch, images: batch.images.map(image => ({ ...image, id: image.fileName || image.id })) };
+}
+const completeDimensions = (batch: StoredBatch) => ensureImageDimensions(batch, uri => new Promise((resolve, reject) => {
+  Image.getSize(uri, (width, height) => resolve({ width, height }), reject);
+}));
 
-async function writeSafTextFile(directoryUri: string, fileName: string, content: string) {
-  const uri = await FileSystem.StorageAccessFramework.createFileAsync(directoryUri, fileName, 'text/plain');
-  await FileSystem.writeAsStringAsync(uri, content);
+async function ensureDirectory(uri: string) {
+  if (!(await FileSystem.getInfoAsync(uri)).exists) await FileSystem.makeDirectoryAsync(uri, { intermediates: true });
 }
 
-/** Finds a direct child of a SAF directory by its display name, or null if absent. */
 async function findChildUri(parentUri: string, childName: string) {
   const entries = await FileSystem.StorageAccessFramework.readDirectoryAsync(parentUri);
-  return entries.find((uri) => decodeURIComponent(uri).split('/').pop() === childName) ?? null;
+  return entries.find(uri => fileNameFromUri(uri) === childName) ?? null;
 }
 
-/**
- * Returns the SAF URI for the user-selected "IWRC imaging" folder, prompting
- * the user to pick a folder the first time this is called. The picker is
- * hinted to open in Documents, but the user can choose any folder - "IWRC
- * imaging" is then created (or reused) inside whatever they pick.
- * When `promptIfMissing` is false, returns null instead of prompting.
- */
+async function connectedRoots(): Promise<string[]> {
+  const saved = await AsyncStorage.getItem(CONNECTED_ROOTS_KEY);
+  if (!saved) return [];
+  try {
+    const roots = JSON.parse(saved);
+    return Array.isArray(roots) ? roots.filter((uri): uri is string => typeof uri === 'string') : [];
+  } catch { return []; }
+}
+
+/** New saves use IWRC. The old root preference remains available for older batches. */
 async function getRootDirectoryUri(promptIfMissing: boolean): Promise<string | null> {
   const savedUri = await AsyncStorage.getItem(ROOT_DIRECTORY_URI_KEY);
   if (savedUri) {
-    // FileSystem.getInfoAsync() targets real filesystem paths; on some
-    // Android builds it can't stat a SAF content:// tree URI at all and
-    // throws "Function not implemented" instead of reporting non-existence.
-    // Probe with an actual SAF call instead, and treat any failure here
-    // (revoked permission, deleted folder, this quirk) as "needs re-grant".
     try {
       await FileSystem.StorageAccessFramework.readDirectoryAsync(savedUri);
       return savedUri;
-    } catch {
-      await AsyncStorage.removeItem(ROOT_DIRECTORY_URI_KEY);
-    }
+    } catch { if (!promptIfMissing) return null; }
   }
-
   if (!promptIfMissing) return null;
-
-  const initialUri = FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Documents');
-  const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(initialUri);
-  if (!permission.granted) {
-    throw new Error('Folder permission was not granted.');
-  }
-
-  const existingRoot = await findChildUri(permission.directoryUri, ROOT_DIRECTORY_NAME);
-  const rootUri =
-    existingRoot ??
-    (await FileSystem.StorageAccessFramework.makeDirectoryAsync(
-      permission.directoryUri,
-      ROOT_DIRECTORY_NAME
-    ));
+  const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
+    FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Documents'));
+  if (!permission.granted) throw new Error('Folder permission was not granted.');
+  const selected = permission.directoryUri;
+  const rootUri = fileNameFromUri(selected) === ROOT_DIRECTORY_NAME ? selected
+    : await findChildUri(selected, ROOT_DIRECTORY_NAME)
+      ?? await FileSystem.StorageAccessFramework.makeDirectoryAsync(selected, ROOT_DIRECTORY_NAME);
   await AsyncStorage.setItem(ROOT_DIRECTORY_URI_KEY, rootUri);
   return rootUri;
 }
 
+/** Reconnect a folder after reinstalling, or open batches saved by an older version. */
+export async function connectSavedBatchFolder(): Promise<void> {
+  if (!USE_DEVICE_FOLDER) throw new Error('Folder access is available on Android.');
+  const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
+    FileSystem.StorageAccessFramework.getUriForDirectoryInRoot('Documents'));
+  if (!permission.granted) return;
+  const selected = permission.directoryUri;
+  const children = await FileSystem.StorageAccessFramework.readDirectoryAsync(selected);
+  const roots = children.filter(uri => [ROOT_DIRECTORY_NAME, 'IWRC imaging'].includes(fileNameFromUri(uri)));
+  const newRoot = fileNameFromUri(selected) === ROOT_DIRECTORY_NAME ? selected
+    : roots.find(uri => fileNameFromUri(uri) === ROOT_DIRECTORY_NAME);
+  if (newRoot) await AsyncStorage.setItem(ROOT_DIRECTORY_URI_KEY, newRoot);
+  await AsyncStorage.setItem(CONNECTED_ROOTS_KEY, JSON.stringify(
+    [...new Set([...await connectedRoots(), ...(roots.length ? roots : [selected])])]));
+}
+
 async function saveBatchToDeviceFolder(batch: StoredBatch): Promise<StoredBatch> {
-  // Validate all annotations before touching an existing batch on disk.
-  const classes = batchClasses(batch);
+  const complete = await completeDimensions(batch);
+  batchClasses(complete);
   const rootUri = await getRootDirectoryUri(true);
-  if (!rootUri) {
-    throw new Error('Folder permission was not granted.');
+  if (!rootUri) throw new Error('Folder permission was not granted.');
+  const folderName = batchFolderName(complete);
+  const batchUri = await findChildUri(rootUri, folderName)
+    ?? await FileSystem.StorageAccessFramework.makeDirectoryAsync(rootUri, folderName);
+  const children = await FileSystem.StorageAccessFramework.readDirectoryAsync(batchUri);
+  if (children.some(uri => fileNameFromUri(uri) === METADATA_FILE_NAME)) {
+    throw new Error('This batch is already saved. Open it from Saved Batches to edit its annotations.');
   }
-
-  const id = safePathSegment(batch.id || `batch-${Date.now()}`);
-
-  const existingBatchUri = await findChildUri(rootUri, id);
-  if (existingBatchUri) {
-    await FileSystem.StorageAccessFramework.deleteAsync(existingBatchUri);
-  }
-  const batchUri = await FileSystem.StorageAccessFramework.makeDirectoryAsync(rootUri, id);
-
+  const byName = new Map(children.map(uri => [fileNameFromUri(uri), uri]));
   const permanentImages: ImageItem[] = [];
-  for (const [index, image] of batch.images.entries()) {
-    const fileName = `image_${String(index + 1).padStart(3, '0')}.${imageExtension(image.fileName ?? image.uri)}`;
-    const imageUri = await FileSystem.StorageAccessFramework.createFileAsync(
-      batchUri,
-      fileName,
-      imageMimeType(fileName)
-    );
-    // copyAsync's Android implementation does not reliably support a SAF
-    // content:// destination (it tries to mkdir the raw URI as a path), so
-    // the image bytes are round-tripped through base64 instead.
-    const base64Image = await FileSystem.readAsStringAsync(image.uri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    await FileSystem.writeAsStringAsync(imageUri, base64Image, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+  for (const [index, image] of complete.images.entries()) {
+    const fileName = `image_${String(index + 1).padStart(3, '0')}.${imageExtension(image.fileName || image.uri, image.mimeType)}`;
+    const base64Image = await FileSystem.readAsStringAsync(image.uri, { encoding: FileSystem.EncodingType.Base64 });
+    const imageUri = byName.get(fileName) ?? await FileSystem.StorageAccessFramework.createFileAsync(
+      batchUri, fileName, imageMimeType(fileName));
+    await FileSystem.writeAsStringAsync(imageUri, base64Image, { encoding: FileSystem.EncodingType.Base64 });
     const fileSizeBytes = Math.floor(base64Image.length * 3 / 4) - (base64Image.endsWith('==') ? 2 : base64Image.endsWith('=') ? 1 : 0);
-    permanentImages.push({ ...image, uri: imageUri, fileName, fileSizeBytes, mimeType: image.mimeType || imageMimeType(fileName) });
-    await writeSafTextFile(batchUri, labelFileName(fileName), (image.annotations ?? []).map(yoloLine).join('\n'));
+    permanentImages.push({ ...image, id: fileName, uri: imageUri, fileName, fileSizeBytes,
+      mimeType: image.mimeType || imageMimeType(fileName) });
   }
+  const stored: StoredBatch = { ...complete, id: folderName, name: complete.name || folderName,
+    storageDirectoryUri: batchUri, images: permanentImages, synced: false,
+    savedAt: complete.savedAt || new Date().toISOString() };
+  const metadataUri = await FileSystem.StorageAccessFramework.createFileAsync(batchUri, METADATA_FILE_NAME, 'text/plain');
+  try {
+    await FileSystem.writeAsStringAsync(metadataUri, JSON.stringify(toInternalMetadata(stored), null, 2));
+  } catch (error) {
+    // Removing an incomplete commit file allows a failed new save to be retried.
+    await FileSystem.StorageAccessFramework.deleteAsync(metadataUri);
+    throw error;
+  }
+  return stored;
+}
 
-  const storedBatch: StoredBatch = {
-    ...batch,
-    id,
-    name: batch.name || id,
-    images: permanentImages,
-    synced: false,
-    savedAt: batch.savedAt || new Date().toISOString(),
-  };
-
-  const jsonUri = await FileSystem.StorageAccessFramework.createFileAsync(
-    batchUri,
-    METADATA_FILE_NAME,
-    'text/plain'
-  );
-  await FileSystem.writeAsStringAsync(
-    jsonUri,
-    JSON.stringify(toInternalMetadata(storedBatch), null, 2)
-  );
-  await writeSafTextFile(batchUri, 'classes.txt', classes.join('\n'));
-
-  return storedBatch;
+async function readDeviceBatch(directory: string): Promise<StoredBatch | null> {
+  const children = await FileSystem.StorageAccessFramework.readDirectoryAsync(directory);
+  const metadataUri = children.find(uri => fileNameFromUri(uri) === METADATA_FILE_NAME);
+  if (!metadataUri) return null;
+  const legacyImages = children.find(uri => fileNameFromUri(uri) === 'images');
+  const imageEntries = legacyImages ? [...children, ...await FileSystem.StorageAccessFramework.readDirectoryAsync(legacyImages)] : children;
+  const byName = Object.fromEntries(imageEntries.map(uri => [fileNameFromUri(uri), uri]));
+  const content = JSON.parse(await FileSystem.readAsStringAsync(metadataUri));
+  return { ...normalizeLocalBatch(content, fileNameFromUri(directory), byName), storageDirectoryUri: directory };
 }
 
 async function getSavedBatchesFromDeviceFolder(): Promise<StoredBatch[]> {
-  const rootUri = await getRootDirectoryUri(false);
-  if (!rootUri) return [];
-
-  const entries = await FileSystem.StorageAccessFramework.readDirectoryAsync(rootUri);
+  const roots = [...new Set([await getRootDirectoryUri(false), await AsyncStorage.getItem(LEGACY_ROOT_URI_KEY),
+    ...await connectedRoots()].filter((uri): uri is string => Boolean(uri)))];
   const batches: StoredBatch[] = [];
-
-  for (const entryUri of entries) {
-    const fallbackId = decodeURIComponent(entryUri).split('/').pop() ?? entryUri;
+  for (const root of roots) {
     try {
-      const children = await FileSystem.StorageAccessFramework.readDirectoryAsync(entryUri);
-      const imageUrisByName = Object.fromEntries(
-        children.map((uri) => [decodeURIComponent(uri).split('/').pop() ?? uri, uri])
-      );
-      const jsonUri = children.find(
-        (uri) => decodeURIComponent(uri).split('/').pop() === METADATA_FILE_NAME
-      );
-      if (!jsonUri) continue;
-      const content = await FileSystem.readAsStringAsync(jsonUri);
-      batches.push(normalizeSavedBatch(JSON.parse(content), fallbackId, imageUrisByName));
-    } catch {
-      console.warn('Skipping invalid saved batch:', fallbackId);
-    }
+      const directBatch = await readDeviceBatch(root);
+      if (directBatch) { batches.push(directBatch); continue; }
+      for (const entry of await FileSystem.StorageAccessFramework.readDirectoryAsync(root)) {
+        try {
+          const batch = await readDeviceBatch(entry);
+          if (batch) batches.push(batch);
+        } catch { /* Non-batch files are ignored. */ }
+      }
+    } catch { console.warn('A saved batch folder is unavailable. Reconnect it from Saved Batches.'); }
   }
-
-  return batches.sort(
-    (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
-  );
-}
-
-async function deleteBatchFromDeviceFolder(id: string) {
-  const rootUri = await getRootDirectoryUri(false);
-  if (!rootUri) return;
-
-  const batchUri = await findChildUri(rootUri, safePathSegment(id));
-  if (batchUri) {
-    await FileSystem.StorageAccessFramework.deleteAsync(batchUri);
-  }
+  return batches;
 }
 
 async function saveBatchInternal(batch: StoredBatch): Promise<StoredBatch> {
-  const classes = batchClasses(batch);
-  await ensureDirectory(BATCHES_DIR);
-  const id = safePathSegment(batch.id || `batch-${Date.now()}`);
-  const batchDirectory = `${BATCHES_DIR}${id}/`;
-  const imagesDirectory = `${batchDirectory}images/`;
-  await ensureDirectory(imagesDirectory);
-
-  const permanentImages: ImageItem[] = [];
-  for (const [index, image] of batch.images.entries()) {
-    const fileName = `image_${String(index + 1).padStart(3, '0')}.${imageExtension(image.fileName ?? image.uri)}`;
-    const destination = `${imagesDirectory}${fileName}`;
-    if (image.uri !== destination) {
-      await FileSystem.copyAsync({ from: image.uri, to: destination });
-    }
-    const fileInfo = await FileSystem.getInfoAsync(destination);
-    permanentImages.push({ ...image, uri: destination, fileName,
-      fileSizeBytes: fileInfo.exists ? fileInfo.size : image.fileSizeBytes,
-      mimeType: image.mimeType || imageMimeType(fileName) });
-    await FileSystem.writeAsStringAsync(`${imagesDirectory}${labelFileName(fileName)}`, (image.annotations ?? []).map(yoloLine).join('\n'));
+  const complete = await completeDimensions(batch);
+  batchClasses(complete);
+  const folderName = batchFolderName(complete);
+  const directory = `${BATCHES_DIR}${folderName}/`;
+  const metadataPath = `${directory}${METADATA_FILE_NAME}`;
+  if ((await FileSystem.getInfoAsync(metadataPath)).exists) {
+    throw new Error('This batch is already saved. Open it from Saved Batches to edit its annotations.');
   }
+  await ensureDirectory(directory);
+  const images: ImageItem[] = [];
+  for (const [index, image] of complete.images.entries()) {
+    const fileName = `image_${String(index + 1).padStart(3, '0')}.${imageExtension(image.fileName || image.uri, image.mimeType)}`;
+    const destination = `${directory}${fileName}`;
+    if (image.uri !== destination) await FileSystem.copyAsync({ from: image.uri, to: destination });
+    const info = await FileSystem.getInfoAsync(destination);
+    images.push({ ...image, id: fileName, uri: destination, fileName, fileSizeBytes: info.exists ? info.size : image.fileSizeBytes,
+      mimeType: image.mimeType || imageMimeType(fileName) });
+  }
+  const stored = { ...complete, id: folderName, name: complete.name || folderName,
+    storageDirectoryUri: directory, images, synced: false, savedAt: complete.savedAt || new Date().toISOString() };
+  try { await FileSystem.writeAsStringAsync(metadataPath, JSON.stringify(toInternalMetadata(stored), null, 2)); }
+  catch (error) { await FileSystem.deleteAsync(metadataPath, { idempotent: true }); throw error; }
+  return stored;
+}
 
-  const storedBatch: StoredBatch = {
-    ...batch,
-    id,
-    name: batch.name || id,
-    images: permanentImages,
-    synced: false,
-    savedAt: batch.savedAt || new Date().toISOString(),
-  };
-  const metadataPath = `${batchDirectory}${METADATA_FILE_NAME}`;
-  await FileSystem.writeAsStringAsync(`${imagesDirectory}classes.txt`, classes.join('\n'));
-  await FileSystem.writeAsStringAsync(
-    metadataPath,
-    JSON.stringify(toInternalMetadata(storedBatch), null, 2)
-  );
-  return storedBatch;
+async function readInternalBatch(uri: string, fallbackId: string): Promise<StoredBatch | null> {
+  if (uri.endsWith('.json')) {
+    return { ...normalizeLocalBatch(JSON.parse(await FileSystem.readAsStringAsync(uri)), fallbackId), storageDirectoryUri: uri };
+  }
+  const metadataPath = `${uri}${METADATA_FILE_NAME}`;
+  if (!(await FileSystem.getInfoAsync(metadataPath)).exists) return null;
+  const imagePaths: Record<string, string> = {};
+  for (const directory of [uri, `${uri}images/`]) {
+    if (!(await FileSystem.getInfoAsync(directory)).exists) continue;
+    for (const name of await FileSystem.readDirectoryAsync(directory)) imagePaths[name] = `${directory}${name}`;
+  }
+  return { ...normalizeLocalBatch(JSON.parse(await FileSystem.readAsStringAsync(metadataPath)), fallbackId, imagePaths),
+    storageDirectoryUri: uri };
 }
 
 async function getSavedBatchesInternal(): Promise<StoredBatch[]> {
-  await ensureDirectory(BATCHES_DIR);
-  const entries = await FileSystem.readDirectoryAsync(BATCHES_DIR);
   const batches: StoredBatch[] = [];
-
-  for (const entry of entries) {
-    const entryUri = `${BATCHES_DIR}${entry}`;
-    try {
-      const info = await FileSystem.getInfoAsync(entryUri);
-      if (info.exists && info.isDirectory) {
-        const metadataPath = `${entryUri}/${METADATA_FILE_NAME}`;
-        const metadataInfo = await FileSystem.getInfoAsync(metadataPath);
-        if (!metadataInfo.exists) continue;
-        const content = await FileSystem.readAsStringAsync(metadataPath);
-        const imagesDirectory = `${entryUri}/images`;
-        const imagesInfo = await FileSystem.getInfoAsync(imagesDirectory);
-        const imageUrisByName = imagesInfo.exists && imagesInfo.isDirectory
-          ? Object.fromEntries(
-              (await FileSystem.readDirectoryAsync(imagesDirectory)).map((fileName) => [
-                fileName,
-                `${imagesDirectory}/${fileName}`,
-              ])
-            )
-          : {};
-        batches.push(normalizeSavedBatch(JSON.parse(content), entry, imageUrisByName));
-      } else if (entry.endsWith('.json')) {
-        const content = await FileSystem.readAsStringAsync(entryUri);
-        batches.push(normalizeSavedBatch(JSON.parse(content), entry.replace(/\.json$/, '')));
-      }
-    } catch {
-      console.warn('Skipping invalid local batch:', entry);
+  for (const root of [BATCHES_DIR, LEGACY_BATCHES_DIR]) {
+    if (!(await FileSystem.getInfoAsync(root)).exists) continue;
+    for (const entry of await FileSystem.readDirectoryAsync(root)) {
+      try {
+        const info = await FileSystem.getInfoAsync(`${root}${entry}`);
+        if (!info.exists || (!info.isDirectory && !entry.endsWith('.json'))) continue;
+        const batch = await readInternalBatch(`${root}${entry}${info.isDirectory ? '/' : ''}`, entry.replace(/\.json$/, ''));
+        if (batch) batches.push(batch);
+      } catch { console.warn('Skipping unreadable local batch:', entry); }
     }
   }
-
-  return batches.sort(
-    (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
-  );
-}
-
-async function deleteBatchInternal(id: string) {
-  const safeId = safePathSegment(id);
-  const batchDirectory = `${BATCHES_DIR}${safeId}`;
-  const legacyFile = `${BATCHES_DIR}${safeId}.json`;
-  const directoryInfo = await FileSystem.getInfoAsync(batchDirectory);
-  if (directoryInfo.exists) {
-    await FileSystem.deleteAsync(batchDirectory, { idempotent: true });
-  }
-  const legacyInfo = await FileSystem.getInfoAsync(legacyFile);
-  if (legacyInfo.exists) {
-    await FileSystem.deleteAsync(legacyFile, { idempotent: true });
-  }
+  return batches;
 }
 
 export async function saveBatch(batch: StoredBatch): Promise<StoredBatch> {
@@ -284,46 +212,68 @@ export async function saveBatch(batch: StoredBatch): Promise<StoredBatch> {
 }
 
 export async function getSavedBatches(): Promise<StoredBatch[]> {
-  return USE_DEVICE_FOLDER ? getSavedBatchesFromDeviceFolder() : getSavedBatchesInternal();
+  const batches = [...(USE_DEVICE_FOLDER ? await getSavedBatchesFromDeviceFolder() : []), ...await getSavedBatchesInternal()];
+  const unique = new Map<string | null, StoredBatch>();
+  for (const batch of batches) if (!unique.has(batch.id)) unique.set(batch.id, batch);
+  return [...unique.values()].sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
 }
 
 export async function deleteBatch(id: string) {
-  return USE_DEVICE_FOLDER ? deleteBatchFromDeviceFolder(id) : deleteBatchInternal(id);
+  const batch = (await getSavedBatches()).find(item => item.id === id);
+  if (!batch?.storageDirectoryUri) return;
+  if (batch.storageDirectoryUri.startsWith('content://')) await FileSystem.StorageAccessFramework.deleteAsync(batch.storageDirectoryUri);
+  else await FileSystem.deleteAsync(batch.storageDirectoryUri, { idempotent: true });
 }
 
-/** Saved-batch editing changes labels and metadata in place, preserving all image files. */
+/** Updates the existing batch in its original folder, including legacy storage locations. */
 export async function saveBatchAnnotations(batch: StoredBatch): Promise<StoredBatch> {
   if (!batch.id) throw new Error('The saved batch could not be identified.');
-  const stored = { ...batch, synced: false };
-  if (USE_DEVICE_FOLDER) {
-    const rootUri = await getRootDirectoryUri(false);
-    const directory = rootUri ? await findChildUri(rootUri, safePathSegment(batch.id)) : null;
-    if (!directory) throw new Error('The saved batch folder is unavailable. Please reopen it from Saved Batches.');
+  let original: StoredBatch | null | undefined;
+  if (batch.storageDirectoryUri) {
+    const uri = batch.storageDirectoryUri;
+    original = uri.startsWith('content://') ? await readDeviceBatch(uri)
+      : await readInternalBatch(uri, fileNameFromUri(uri.replace(/\/$/, '')).replace(/\.json$/, ''));
+  } else original = (await getSavedBatches()).find(item => item.id === batch.id);
+  if (!original?.storageDirectoryUri || original.id !== batch.id) {
+    throw new Error('This saved batch is unavailable. Reopen it from Saved Batches.');
+  }
+  const edits = new Map(batch.images.map(image => [image.id, image]));
+  if (edits.size !== batch.images.length || original.images.length !== edits.size ||
+      original.images.some(image => edits.get(image.id)?.uri !== image.uri)) {
+    throw new Error('The saved photos changed. Reopen the batch before annotating.');
+  }
+  const stored = await completeDimensions({ ...batch, storageDirectoryUri: original.storageDirectoryUri, synced: false });
+  const directory = original.storageDirectoryUri;
+  if (directory.startsWith('content://')) {
     const children = await FileSystem.StorageAccessFramework.readDirectoryAsync(directory);
-    const byName = new Map(children.map(uri => [decodeURIComponent(uri).split('/').pop() ?? uri, uri]));
+    const legacyImages = children.find(uri => fileNameFromUri(uri) === 'images');
+    const entries = legacyImages ? [...children, ...await FileSystem.StorageAccessFramework.readDirectoryAsync(legacyImages)] : children;
+    const byName = new Map(entries.map(uri => [fileNameFromUri(uri), uri]));
     return writeSavedAnnotationFiles(stored, {
-      read: async name => {
-        const uri = byName.get(name);
-        return uri ? FileSystem.readAsStringAsync(uri) : null;
-      },
+      read: async name => byName.has(name) ? FileSystem.readAsStringAsync(byName.get(name)!) : null,
       write: async (name, content) => {
-        let uri = byName.get(name);
-        if (!uri) {
-          uri = await FileSystem.StorageAccessFramework.createFileAsync(directory, name, 'text/plain');
-          byName.set(name, uri);
-        }
+        const uri = byName.get(name) ?? await FileSystem.StorageAccessFramework.createFileAsync(directory, name, 'text/plain');
+        byName.set(name, uri);
         await FileSystem.writeAsStringAsync(uri, content);
       },
-      remove: async name => {
-        const uri = byName.get(name);
-        if (uri) { await FileSystem.StorageAccessFramework.deleteAsync(uri); byName.delete(name); }
-      },
+      remove: async name => { const uri = byName.get(name); if (uri) await FileSystem.StorageAccessFramework.deleteAsync(uri); },
     }, LIGHTING_OPTIONS);
   }
-  const directory = `${BATCHES_DIR}${safePathSegment(batch.id)}/`;
-  const info = await FileSystem.getInfoAsync(directory);
-  if (!info.exists || !info.isDirectory) throw new Error('The saved batch folder is unavailable.');
-  const path = (name: string) => name === METADATA_FILE_NAME ? `${directory}${name}` : `${directory}images/${name}`;
+  if (directory.endsWith('.json')) {
+    // Very old private records retain their photo URIs. Downloads still use COCO batch.txt.
+    const previous = await FileSystem.readAsStringAsync(directory);
+    try { await FileSystem.writeAsStringAsync(directory, JSON.stringify(stored, null, 2)); }
+    catch (error) { await FileSystem.writeAsStringAsync(directory, previous); throw error; }
+    return stored;
+  }
+  const paths = new Map<string, string>();
+  for (const image of stored.images) {
+    if (image.fileName) paths.set(image.fileName.replace(/\.[^.]+$/, '.txt'), image.uri.replace(/\.[^.]+$/, '.txt'));
+  }
+  const classesInLegacyImages = `${directory}images/classes.txt`;
+  paths.set('classes.txt', (await FileSystem.getInfoAsync(classesInLegacyImages)).exists ? classesInLegacyImages : `${directory}classes.txt`);
+  paths.set(METADATA_FILE_NAME, `${directory}${METADATA_FILE_NAME}`);
+  const path = (name: string) => paths.get(name) ?? `${directory}${name}`;
   return writeSavedAnnotationFiles(stored, {
     read: async name => (await FileSystem.getInfoAsync(path(name))).exists ? FileSystem.readAsStringAsync(path(name)) : null,
     write: (name, content) => FileSystem.writeAsStringAsync(path(name), content),

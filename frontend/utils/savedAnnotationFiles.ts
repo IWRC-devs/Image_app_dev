@@ -12,11 +12,15 @@ export async function writeSavedAnnotationFiles(batch: StoredBatch, files: Annot
   lighting: { id: number; name: string }[] = []) {
   if (!batch.id) throw new Error('The saved batch could not be identified.');
   const classes = batchClasses(batch);
-  const updates: [string, string][] = batch.images.map(image => {
+  const updates: [string, string][] = [];
+  for (const image of batch.images) {
     if (!image.fileName) throw new Error('A saved photo is missing its filename.');
-    return [labelFileName(image.fileName), (image.annotations ?? []).map(yoloLine).join('\n')];
-  });
-  updates.push(['classes.txt', classes.join('\n')], ['batch.txt', JSON.stringify(toInternalMetadata(batch, lighting), null, 2)]);
+    const label = labelFileName(image.fileName);
+    // Keep existing legacy label files accurate, while new batches use one metadata file.
+    if (await files.read(label) !== null) updates.push([label, (image.annotations ?? []).map(yoloLine).join('\n')]);
+  }
+  if (await files.read('classes.txt') !== null) updates.push(['classes.txt', classes.join('\n')]);
+  updates.push(['batch.txt', JSON.stringify(toInternalMetadata(batch, lighting), null, 2)]);
   // Read backups before changing anything. Write metadata last and restore on failure.
   const backups = new Map<string, string | null>();
   for (const [name] of updates) backups.set(name, await files.read(name));

@@ -87,7 +87,8 @@ export async function getSavedBatches(): Promise<StoredBatch[]> {
         const { blob, ...metadata } = image;
         const uri = URL.createObjectURL(blob);
         imageUrls.set(`${batch.id}:${image.id}`, uri);
-        return { ...metadata, annotations: metadata.annotations ?? [], uri };
+        return { ...metadata, mimeType: metadata.mimeType || blob.type, fileSizeBytes: metadata.fileSizeBytes ?? blob.size,
+          annotations: metadata.annotations ?? [], uri };
       }),
     }));
 }
@@ -121,6 +122,8 @@ export async function saveBatchAnnotations(batch: StoredBatch): Promise<StoredBa
           throw new Error('The saved photos changed. Please reopen the batch before annotating.');
         }
         store.put({ ...existing, synced: false, images: existing.images.map(image => ({ ...image,
+          width: image.width || edits.get(image.id)!.width,
+          height: image.height || edits.get(image.id)!.height,
           annotations: edits.get(image.id)!.annotations ?? [] })) });
       } catch (error) {
         reject(error);

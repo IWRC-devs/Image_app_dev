@@ -4,6 +4,7 @@ import { CollectorDetails, ImageItem } from "@/types";
 export type { ImageItem } from "@/types";
 
 export type BatchData = CollectorDetails & {
+  storageDirectoryUri?: string;
   synced: any;
   id: string | null;
   name: string;

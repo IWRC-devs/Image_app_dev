@@ -5,6 +5,7 @@ import { Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-
 import { showAlert } from '@/utils/alerts';
 import { BatchDownloadButton } from '@/components/BatchDownloadButton';
 import { BatchUploadButton } from '@/components/BatchUploadButton';
+import { BatchFolderButton } from '@/components/BatchFolderButton';
 
 import { PageTransition } from '@/components/PageTransition';
 import { ThemedText } from '@/components/ThemedText';
@@ -74,8 +75,9 @@ export default function SavedBatchesScreen() {
         <ThemedText style={styles.privacyNote}>
           {Platform.OS === 'web'
             ? "Saved in this browser on this device. Clearing this site's browser data removes local batches. Exported or uploaded copies are kept separately."
-            : 'Saved to the "IWRC imaging" folder you selected on this device. Nothing is uploaded to a server or cloud account.'}
+            : 'New batches are saved under IWRC. Open an older batch folder here if your saved images are missing from this list.'}
         </ThemedText>
+        <BatchFolderButton onConnected={loadBatches} />
 
         {loading ? (
           <ThemedText style={styles.emptyText}>Loading saved batches…</ThemedText>

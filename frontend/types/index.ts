@@ -42,6 +42,8 @@ export interface CollectorDetails {
 }
 
 export interface StoredBatch extends CollectorDetails {
+  /** Local storage location, excluded from exported metadata. */
+  storageDirectoryUri?: string;
   id: string | null;
   name: string;
   affiliationId?: number;

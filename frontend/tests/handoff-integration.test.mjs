@@ -25,17 +25,19 @@ test('clean metadata preserves parameters, EXIF and boxes through a saved-file r
   const metadata = toInternalMetadata(fixture, lighting);
   const json = JSON.stringify(metadata);
   assert.equal(json.includes('internal-'), false);
-  for (const key of ['"id":', '"uri":', '"lighting_id":', '"class_id":']) assert.equal(json.includes(key), false);
+  for (const key of ['"uri":', '"lighting_id":', '"class_id":', '"mime_type":']) assert.equal(json.includes(key), false);
   assert.equal(metadata.parameters.growing_environment, 'Greenhouse');
   assert.equal(metadata.parameters.planting_system, 'Pot');
   assert.equal(metadata.parameters.lighting, 'Sunny');
   assert.deepEqual(metadata.collector, { name: 'Sample Collector', email: 'collector@example.org', organization: 'Example Organization' });
   assert.deepEqual(metadata.images['original.png'].exif.gps, { latitude: 0, longitude: 0 });
-  assert.equal(metadata.schema_version, 5);
+  assert.equal(metadata.schema_version, 1);
+  assert.equal(Object.keys(metadata).at(-1), 'schema_version');
+  assert.equal(metadata.images['original.png'].image_format, 'PNG');
   assert.deepEqual(metadata.images['original.png'].bounding_box_coordinates.instance_1, {
-    weed_name: 'Test specimen', x_center: 0.5, y_center: 0.4, width: 0.2, height: 0.4,
+    id: 1, image_id: 1, category_id: 1, weed_name: 'Test specimen', bbox: [80, 20, 40, 40], area: 1600, iscrowd: 0,
   });
-  assert.equal(metadata.images['original.png'].bounding_box_coordinates.instance_2.x_center, 0.8);
+  assert.deepEqual(metadata.images['original.png'].bounding_box_coordinates.instance_2.bbox, [150, 20, 20, 40]);
   const loaded = normalizeSavedBatch(metadata, 'batch-folder', { 'original.png': 'file:///original.png' }, lighting);
   assert.equal(loaded.id, 'batch-folder');
   assert.equal(loaded.collectorName, 'Sample Collector');
@@ -55,19 +57,17 @@ test('previous flat schemas and unannotated photos still load', () => {
   assert.equal(loaded.collectorName, null);
   assert.equal(loaded.collectorEmail, null);
   assert.equal(loaded.organization, null);
-  assert.deepEqual(toInternalMetadata(loaded, lighting).collector, {});
+  assert.throws(() => toInternalMetadata(loaded, lighting), /dimensions/);
+  assert.deepEqual(toInternalMetadata({ ...loaded, images: [] }, lighting).collector, {});
   assert.equal(normalizeSavedBatch({ weed_site: 'Field' }).growingEnvironment, 'Field');
 });
 
-test('download contains image bytes, clean batch JSON, classes and per-image YOLO labels', async () => {
+test('download contains IWRC, the batch folder, image bytes and a single COCO metadata TXT', async () => {
   const batch = { ...fixture, images: [...fixture.images, { ...fixture.images[0], id: 'negative', annotations: [] }] };
   const files = unzipSync(await createBatchArchive(batch, lighting));
-  assert.deepEqual(Object.keys(files).sort(), ['batch.txt', 'classes.txt', 'image_001.png', 'image_001.txt', 'image_002.png', 'image_002.txt']);
-  assert.equal(strFromU8(files['image_001.png']), 'image-bytes');
-  assert.equal(strFromU8(files['classes.txt']), 'Test specimen');
-  assert.equal(strFromU8(files['image_001.txt']).split('\n').length, 2);
-  assert.equal(strFromU8(files['image_002.txt']), '');
-  const metadata = JSON.parse(strFromU8(files['batch.txt']));
+  assert.deepEqual(Object.keys(files).sort(), ['IWRC/field_batch/batch.txt', 'IWRC/field_batch/image_001.png', 'IWRC/field_batch/image_002.png']);
+  assert.equal(strFromU8(files['IWRC/field_batch/image_001.png']), 'image-bytes');
+  const metadata = JSON.parse(strFromU8(files['IWRC/field_batch/batch.txt']));
   assert.equal(Object.keys(metadata.images['image_001.png'].bounding_box_coordinates).length, 2);
   assert.deepEqual(metadata.images['image_002.png'].bounding_box_coordinates, {});
   assert.deepEqual(metadata.images['image_001.png'].resolution, { width: 200, height: 100 });

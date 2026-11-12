@@ -23,7 +23,7 @@ test('native annotation updates touch only TXT files and keep image bytes and th
   const saved = await writeSavedAnnotationFiles(batch, files);
   assert.equal(saved.id, batch.id);
   assert.equal(files.contents.get('image_001.jpg'), 'ORIGINAL-PHOTO-BYTES');
-  assert.deepEqual(files.writes, ['image_001.txt', 'classes.txt', 'batch.txt']);
+  assert.deepEqual(files.writes, ['image_001.txt', 'batch.txt']);
   assert.equal(files.contents.get('image_001.txt'), '0 0.500000 0.500000 0.200000 0.300000');
   const metadata = JSON.parse(files.contents.get('batch.txt'));
   assert.equal(metadata.batch_name, batch.name);
@@ -32,7 +32,7 @@ test('native annotation updates touch only TXT files and keep image bytes and th
   assert.equal(metadata.images['image_001.jpg'].bounding_box_coordinates.instance_1.weed_name, batch.botanicalName);
 });
 
-test('a partial native metadata write restores old labels and metadata and removes newly created labels', async () => {
+test('a partial native metadata write restores the previous metadata and existing legacy labels', async () => {
   for (const hasLabels of [true, false]) {
     const files = fileStore([['image_001.jpg', 'ORIGINAL'], ['batch.txt', 'previous metadata'],
       ...(hasLabels ? [['image_001.txt', 'previous boxes'], ['classes.txt', 'previous classes']] : [])]);

@@ -1,5 +1,4 @@
 {
-  "schema_version": 5,
   "batch_name": "field_batch",
   "saved_at": "2026-10-29T12:00:00Z",
   "collector": {
@@ -22,29 +21,118 @@
   },
   "images": {
     "image_001.png": {
-      "resolution": { "width": 200, "height": 100 },
+      "image_id": 1,
+      "resolution": {
+        "width": 200,
+        "height": 100
+      },
       "orientation": "landscape",
-      "mime_type": "image/png",
+      "image_format": "PNG",
       "file_size_bytes": 11,
-      "exif": { "camera_make": "Test", "camera_model": "Camera" },
+      "exif": {
+        "camera_make": "Test",
+        "camera_model": "Camera"
+      },
       "bounding_box_coordinates": {
         "instance_1": {
+          "id": 1,
+          "image_id": 1,
+          "category_id": 1,
           "weed_name": "Test specimen",
-          "x_center": 0.5,
-          "y_center": 0.4,
-          "width": 0.2,
-          "height": 0.4
+          "bbox": [
+            80,
+            20,
+            40,
+            40
+          ],
+          "area": 1600,
+          "iscrowd": 0
         },
         "instance_2": {
+          "id": 2,
+          "image_id": 1,
+          "category_id": 1,
           "weed_name": "Test specimen",
-          "x_center": 0.8,
-          "y_center": 0.4,
-          "width": 0.1,
-          "height": 0.4
+          "bbox": [
+            150,
+            20,
+            20,
+            40
+          ],
+          "area": 800,
+          "iscrowd": 0
         }
       }
     }
   },
-  "annotation_format": "YOLO normalized (class_id x_center y_center width height)",
-  "classes": ["Test specimen"]
+  "annotation_format": "COCO",
+  "coordinate_system": {
+    "bbox_order": [
+      "x",
+      "y",
+      "width",
+      "height"
+    ],
+    "units": "pixels",
+    "origin": "top-left",
+    "reference": "Saved image at the resolution recorded for that image",
+    "image_orientation": "Apply the saved image EXIF orientation before interpreting these coordinates.",
+    "area_units": "square pixels of the bounding rectangle",
+    "iscrowd": "0 indicates an individually annotated plant",
+    "category_id": "Matches an id in coco.categories",
+    "coco": "Standard COCO object-detection dataset. Extract this object for COCO-compatible tools."
+  },
+  "coco": {
+    "info": {
+      "description": "IWRC image batch with bounding-box annotations",
+      "version": "1",
+      "date_created": "2026-10-29T12:00:00Z"
+    },
+    "images": [
+      {
+        "id": 1,
+        "file_name": "image_001.png",
+        "width": 200,
+        "height": 100
+      }
+    ],
+    "annotations": [
+      {
+        "id": 1,
+        "image_id": 1,
+        "category_id": 1,
+        "weed_name": "Test specimen",
+        "bbox": [
+          80,
+          20,
+          40,
+          40
+        ],
+        "area": 1600,
+        "iscrowd": 0
+      },
+      {
+        "id": 2,
+        "image_id": 1,
+        "category_id": 1,
+        "weed_name": "Test specimen",
+        "bbox": [
+          150,
+          20,
+          20,
+          40
+        ],
+        "area": 800,
+        "iscrowd": 0
+      }
+    ],
+    "categories": [
+      {
+        "id": 1,
+        "name": "Test specimen",
+        "supercategory": "weed"
+      }
+    ]
+  },
+  "schema_version": 1
 }

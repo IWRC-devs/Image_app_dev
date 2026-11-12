@@ -117,8 +117,8 @@ test('a saved batch can be reopened, annotated and reloaded without duplicates o
     assert.equal(image.fileName, original.images[index].fileName);
   }
   const archive = unzipSync(await createBatchArchive(saved));
-  assert.equal(strFromU8(archive['image_001.txt']).split('\n').length, 2);
-  const metadata = JSON.parse(strFromU8(archive['batch.txt']));
+  const metadata = JSON.parse(strFromU8(archive['IWRC/reopen-existing/batch.txt']));
+  assert.equal(metadata.coco.annotations.length, 2);
   assert.equal(Object.keys(metadata.images['image_001.png'].bounding_box_coordinates).length, 2);
   assert.equal(metadata.collector.email, original.collectorEmail);
   // Removing the last boxes is also a durable edit, not a duplicate/new batch.
@@ -177,6 +177,26 @@ test('saving each tapped box keeps one batch and allows another box to be saved 
   assert.equal(batches.length, 1);
   assert.equal(batches[0].id, original.id);
   const archive = unzipSync(await createBatchArchive(batches[0]));
-  assert.equal(strFromU8(archive['image_001.txt']).split('\n').length, 2);
+  assert.equal(JSON.parse(strFromU8(archive['IWRC/save-each-box/batch.txt'])).coco.annotations.length, 2);
+  await deleteBatch(original.id);
+});
+
+test('older browser photos gain measured dimensions when annotated and export complete COCO metadata', async () => {
+  const original = fixture('legacy-dimensions');
+  original.images[0].width = undefined;
+  original.images[0].height = undefined;
+  original.images[0].annotations = [];
+  await saveBatch(original);
+  const [loaded] = await getSavedBatches();
+  const edited = completeAnnotationEdit(openSavedBatch(loaded), loaded.images[0].id,
+    fixture('source').images[0].annotations, { width: 200, height: 100 });
+  await saveOpenedBatch(edited.batch, saveBatchAnnotations);
+  const [reloaded] = await getSavedBatches();
+  assert.equal(reloaded.images[0].width, 200);
+  assert.equal(reloaded.images[0].height, 100);
+  assert.equal(await (await fetch(reloaded.images[0].uri)).text(), 'image-bytes');
+  const files = unzipSync(await createBatchArchive(reloaded));
+  const metadata = JSON.parse(strFromU8(files['IWRC/legacy-dimensions/batch.txt']));
+  assert.deepEqual(metadata.coco.annotations[0].bbox, [60, 40, 80, 20]);
   await deleteBatch(original.id);
 });

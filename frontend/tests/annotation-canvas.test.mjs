@@ -187,7 +187,7 @@ test('undo and redo reverse complete drawing, drag, resize and delete actions wi
   assert.deepEqual(drawn.present.boxes, [box]);
 });
 
-test('a small box drawn in a zoomed view survives Done and exports original-image YOLO coordinates', async () => {
+test('a small box drawn in a zoomed view survives Done and exports original-image COCO pixel coordinates', async () => {
   const frame = imageFrame(source, viewport, { zoom: 4, offset: { x: -100, y: 80 } });
   const start = screenPoint({ x: 0.5, y: 0.4 }, frame);
   const end = screenPoint({ x: 0.52, y: 0.42 }, frame);
@@ -197,11 +197,10 @@ test('a small box drawn in a zoomed view survives Done and exports original-imag
     botanicalName: 'Selected species', images: [image], selectedOption: 'manual' };
   const completed = completeAnnotationEdit(batch, image.id, [annotation], source);
   const files = unzipSync(await createBatchArchive(completed.batch));
-  assert.equal(strFromU8(files['image_001.txt']), '0 0.510000 0.410000 0.020000 0.020000');
-  const metadata = JSON.parse(strFromU8(files['batch.txt']));
+  const metadata = JSON.parse(strFromU8(files['IWRC/batch/batch.txt']));
   const savedBox = metadata.images['image_001.jpg'].bounding_box_coordinates.instance_1;
-  near(savedBox.x_center, 0.51);
-  near(savedBox.width, 0.02);
+  assert.deepEqual(savedBox.bbox, [2000, 1200, 80, 60]);
+  assert.equal(savedBox.area, 4800);
   assert.equal(savedBox.weed_name, 'Selected species');
   assert.equal(completed.route, '/screens/imaging/image-selection');
 });

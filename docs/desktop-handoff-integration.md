@@ -4,33 +4,53 @@ The imported bundle is based on commit `4ed2f32`. Its original commits are retai
 
 - `a1416aa`: Field/Greenhouse growing environment and Soil/Pot planting system.
 - `dc25ffa`: readable batch metadata, image dimensions/type/size, selected EXIF and embedded GPS.
-- `a322eaa`: per-image YOLO annotation editor, retained on `annotation-feature`.
+- `a322eaa`: the original YOLO annotation editor, retained on `annotation-feature`.
 
-The metadata commits merge into `main` alongside the existing PWA. The combined editor and metadata implementation lives on `annotation-metadata-integration` and is used for the PWA preview.
+These features and the subsequent annotation updates are integrated into `main`, the PWA, and the Android release.
 
-## Combined behavior
+## Annotation and saved batches
 
-Use the large green Annotate button on a photo in capture, image selection, or review to edit its boxes. Box labels show the selected weed name, with red outlines and corner handles. New images start with no boxes. Tap to place a screen-sized box with editable corners, adjust it, then Save box. Saving clears the selection and arms the next tap for another instance, including an overlapping one. While a box is selected, tapping elsewhere cannot accidentally add another. Edit boxes selects existing annotations; Next box selects and centers a box. Use two fingers to zoom in/out and move the image; separate Move image, Fit, and +/− controls have been removed. A tap is committed only after release, so placing a second finger for navigation cannot create a phantom box. Lifting one finger after a pinch cannot edit or create a box. Undo/Redo reverse a complete placement, move, resize, or deletion action. Boxes can be resized down to one original-image pixel; zoom and pan never change stored normalized coordinates. Save changes persists deletion/undo when no box is selected. Done retains edits and returns to the image list. For a new collection, final Review & Save is still required to persist the complete batch.
+Use the green Annotate button on a photo to open the editor. Tap the photo to place a red box, adjust its corners or drag its interior, and choose Save box before adding another. Edit boxes selects existing annotations. Delete box removes the selected instance. Two fingers zoom and move the image; the help icon explains the gestures. Done saves and returns to the photo gallery. New collections still need Review & Save to persist the complete batch.
 
-The annotation geometry/history regression tests cover tap placement at visible image edges, the tap/adjust/save/repeat sequence, per-box persistence on a saved batch, zoomed coordinate export, pinch focal points, two-finger pan calculations, image boundaries, small targets, and undo/redo including deletion. Physical-device gesture and layout checks remain necessary: local browser interaction is disabled in the current Work settings. Manually try placing and saving five boxes, two-finger zooming and panning, editing a small box, deleting and undoing it, cycling overlapping boxes, then Done and final Save locally for a new collection. Download the batch and confirm the corresponding TXT instances.
+Saved Batches has an Open & annotate action. Save box persists changes without leaving the editor; Done saves before returning to that saved gallery. Failed saves retain the editor and selection for retry. The batch ID, original save time, collector details, and photo bytes are preserved. Missing legacy collector fields do not block annotation. The browser keeps its existing IndexedDB database and blobs. Android reads older device folders and private batches alongside new batches. Open saved batch folder reconnects an Android folder after its saved preference or permission is lost.
 
-Saved Batches now has an Open & annotate action. Its gallery opens persisted images directly; Save box waits for annotation persistence and stays in the editor, and Done saves before returning to that saved gallery. A failed Save box retains the selected box and its edits. It retains the batch ID and original save time, never creates another batch, and does not require missing legacy collector fields to be filled again. Browser edits update annotations in the existing IndexedDB record while retaining its original blobs. Native edits update only TXT files, back up existing text first, and attempt restoration on write failure; source photos are never deleted or rewritten. Editor state resets on each visit and includes the batch identity, so legacy image IDs shared between batches cannot reuse another batch's edit history. Regression checks cover reopen/edit/reload/export, last-box deletion, stale IDs, and native text-write failure restoration.
+## Folder layout and metadata
 
-Android continues saving to the chosen device folder. Each photo has a matching YOLO `.txt` label file, plus `classes.txt` and `batch.txt`. The PWA saves image bytes, annotations and metadata to IndexedDB. Its Saved Batches download button exports a ZIP with the same photos, label files, classes and readable metadata. EXIF is read locally when present; no upload or account is involved.
-
-Schema 5 retains readable parameter/class names and omits internal UUIDs, device URIs and categorical IDs. Under each image filename, `bounding_box_coordinates` contains numbered instances alongside resolution, file details and available EXIF. YOLO numeric class indexes occur in label files, with line positions defined by `classes.txt`. See [a saved metadata example](batch-metadata-example.json). Its first annotation produces:
+New Android saves and PWA ZIP downloads use:
 
 ```text
-0 0.500000 0.400000 0.200000 0.400000
+IWRC/
+  <batch name>/
+    image_001.jpg
+    image_002.jpg
+    batch.txt
 ```
 
-Older flat metadata, pre-annotation photos and schema 3/4 metadata remain readable. Export serialization is shared by Android and the PWA to prevent their formats diverging.
+Photo extensions reflect their actual format. There is one metadata file per batch, with collector, organization, location, parameters, and per-image resolution, image format, size, available EXIF, and numbered bounding-box instances. The PWA stores batches locally in its current browser and device until downloaded. No upload or account is required.
+
+`annotation_format` is `COCO`. Boxes are `[x, y, width, height]` in pixels, measured from the top-left of the saved image after applying EXIF orientation. Each instance includes a unique annotation ID, image/category IDs, rectangular area, and `iscrowd: 0`. Images without annotations have no instances and remain in the COCO image list. The final root field is `schema_version: 1`.
+
+The readable `images` object is keyed by filename. The same file also contains a `coco` object with standard COCO `images`, `annotations`, and `categories` arrays. For COCO tools, extract that object into a JSON file:
+
+```python
+import json
+from pathlib import Path
+
+metadata = json.loads(Path('batch.txt').read_text(encoding='utf-8'))
+Path('instances.json').write_text(json.dumps(metadata['coco']), encoding='utf-8')
+```
+
+See [the metadata example](batch-metadata-example.json) and [the official COCO data format](https://cocodataset.org/#format-data). The first example box is `[80, 20, 40, 40]` on a 200 by 100 pixel image. Internal editor coordinates remain normalized so zooming and panning do not alter the annotation geometry.
+
+Older flat metadata and schemas 3/4/5 remain readable. Existing legacy YOLO label files are updated when present; new batches and ZIPs contain only photos and batch.txt. Native annotation updates back up existing text and attempt restoration after a write failure. They never rewrite the saved photos. Very old private JSON records retain their local photo references; downloads use the new COCO metadata.
 
 ## Validation
 
 - TypeScript and ESLint.
-- Automated persistence, metadata round-trip, legacy schema, EXIF/GPS and ZIP/YOLO tests.
-- Production web export and offline deep-link/cache test.
-- Android production JavaScript/Hermes export, without creating or installing an APK.
+- Browser persistence, reopen/edit/reload/export, metadata round trips, five-image COCO fixtures, legacy formats, EXIF/GPS, and ZIP layout.
+- Native storage simulations for new folders, legacy Android folders, reconnection, repeated annotation saves, interrupted writes, and iOS private saves.
+- Official COCO API parsing of the exported COCO object.
+- Production web export and offline cache tests.
+- Signed Android release build and package/signature checks.
 
-Android Gradle signing/build configuration, `app.json` and `eas.json` remain unchanged. Existing uncommitted logs and local release artifacts are excluded from these commits. No APK is built or installed for this handoff.
+Physical-device testing remains necessary for Android folder permissions and touch gestures. APK and AAB build options remain available. App signing credentials and unrelated local artifacts are excluded from source changes.
